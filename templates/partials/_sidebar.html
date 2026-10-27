@@ -1,0 +1,53 @@
+{% with current=request.resolver_match.url_name %}
+<aside class="app-sidebar offcanvas-lg offcanvas-start" tabindex="-1" id="sidebar" aria-label="Main navigation">
+  <div class="offcanvas-header d-lg-none pb-0">
+    <button type="button" class="btn-close btn-close-white ms-auto" data-bs-dismiss="offcanvas"
+            data-bs-target="#sidebar" aria-label="Close menu"></button>
+  </div>
+  <div class="sidebar-inner">
+    <a class="sidebar-brand" href="{% url 'core:dashboard' %}">
+      {% if business.logo %}<img src="{{ business.logo.url }}" alt="">{% endif %}
+      {% if business.name %}
+        <span class="sidebar-brand-name">{{ business.name }}</span>
+      {% else %}
+        <span class="sidebar-brand-name is-unset">Your business</span>
+      {% endif %}
+    </a>
+
+    <nav>
+      <ul class="nav flex-column gap-1 sidebar-nav">
+        <li class="nav-item">
+          <a class="nav-link{% if current == 'dashboard' %} active{% endif %}" href="{% url 'core:dashboard' %}"
+             {% if current == 'dashboard' %}aria-current="page"{% endif %}>
+            <i class="bi bi-speedometer2" aria-hidden="true"></i>Dashboard</a>
+        </li>
+        {# Sections not built yet are shown, but not clickable, so there are no dead links. #}
+        <li class="nav-item"><span class="nav-link disabled" aria-disabled="true"><i class="bi bi-file-earmark-text" aria-hidden="true"></i>Invoices<span class="soon">Soon</span></span></li>
+        <li class="nav-item"><span class="nav-link disabled" aria-disabled="true"><i class="bi bi-cash-coin" aria-hidden="true"></i>Payments<span class="soon">Soon</span></span></li>
+        <li class="nav-item"><span class="nav-link disabled" aria-disabled="true"><i class="bi bi-people" aria-hidden="true"></i>Customers<span class="soon">Soon</span></span></li>
+        <li class="nav-item"><span class="nav-link disabled" aria-disabled="true"><i class="bi bi-droplet" aria-hidden="true"></i>Products<span class="soon">Soon</span></span></li>
+        <li class="nav-item"><span class="nav-link disabled" aria-disabled="true"><i class="bi bi-box-seam" aria-hidden="true"></i>Stock<span class="soon">Soon</span></span></li>
+        <li class="nav-item"><span class="nav-link disabled" aria-disabled="true"><i class="bi bi-image" aria-hidden="true"></i>Posters<span class="soon">Soon</span></span></li>
+        <li class="nav-item mt-2">
+          <a class="nav-link{% if current == 'settings' %} active{% endif %}" href="{% url 'core:settings' %}"
+             {% if current == 'settings' %}aria-current="page"{% endif %}>
+            <i class="bi bi-gear" aria-hidden="true"></i>Settings</a>
+        </li>
+        {% if user.is_staff %}
+        <li class="nav-item">
+          <a class="nav-link" href="{% url 'admin:index' %}"><i class="bi bi-database" aria-hidden="true"></i>Data admin</a>
+        </li>
+        {% endif %}
+      </ul>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="mb-2">Signed in as <strong>{{ user.get_username }}</strong></div>
+      <form method="post" action="{% url 'accounts:logout' %}">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-sm btn-signout w-100">Sign out</button>
+      </form>
+    </div>
+  </div>
+</aside>
+{% endwith %}

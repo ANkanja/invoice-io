@@ -1,0 +1,349 @@
+/*
+ * invoicing_io visual identity, layered on Bootstrap 5.3.
+ * Palette: eucalyptus (primary), lemon (attention only), bottle-green ink.
+ */
+:root {
+  --eucalyptus: #1f6f5c;
+  --eucalyptus-dark: #175647;
+  --eucalyptus-tint: #e3efeb;
+  --lemon: #e2b33c;
+  --lemon-tint: #fbf2d9;
+  --ink: #1c2b28;
+  --ink-muted: #5b6b67;
+  --base: #f5f7f6;
+  --line: #d8e1dd;
+  --brick: #b5432f;
+
+  --bs-body-font-family: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --bs-body-color: var(--ink);
+  --bs-body-bg: var(--base);
+  --bs-secondary-color: var(--ink-muted);
+  --bs-border-color: var(--line);
+  --bs-link-color: var(--eucalyptus);
+  --bs-link-color-rgb: 31, 111, 92;
+  --bs-link-hover-color: var(--eucalyptus-dark);
+  --bs-link-hover-color-rgb: 23, 86, 71;
+  --bs-primary: var(--eucalyptus);
+  --bs-primary-rgb: 31, 111, 92;
+  --bs-danger: var(--brick);
+  --bs-danger-rgb: 181, 67, 47;
+  --bs-border-radius: 0.375rem;
+  --bs-focus-ring-color: rgba(31, 111, 92, 0.3);
+
+  --sidebar-width: 15.5rem;
+}
+
+body {
+  font-size: 0.975rem;
+  line-height: 1.55;
+}
+
+/* Money and quantities line up in columns */
+.num,
+.table td.num,
+.table th.num {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+
+h1, .h1 { font-size: 1.6rem; font-weight: 600; letter-spacing: -0.01em; }
+h2, .h2 { font-size: 1.15rem; font-weight: 600; }
+
+/* ---- Buttons ---------------------------------------------------------- */
+.btn-primary {
+  --bs-btn-bg: var(--eucalyptus);
+  --bs-btn-border-color: var(--eucalyptus);
+  --bs-btn-hover-bg: var(--eucalyptus-dark);
+  --bs-btn-hover-border-color: var(--eucalyptus-dark);
+  --bs-btn-active-bg: var(--eucalyptus-dark);
+  --bs-btn-active-border-color: var(--eucalyptus-dark);
+  --bs-btn-disabled-bg: var(--eucalyptus);
+  --bs-btn-disabled-border-color: var(--eucalyptus);
+  --bs-btn-focus-shadow-rgb: 31, 111, 92;
+}
+.btn-outline-primary {
+  --bs-btn-color: var(--eucalyptus);
+  --bs-btn-border-color: var(--eucalyptus);
+  --bs-btn-hover-bg: var(--eucalyptus);
+  --bs-btn-hover-border-color: var(--eucalyptus);
+  --bs-btn-active-bg: var(--eucalyptus-dark);
+  --bs-btn-focus-shadow-rgb: 31, 111, 92;
+}
+.btn-danger {
+  --bs-btn-bg: var(--brick);
+  --bs-btn-border-color: var(--brick);
+  --bs-btn-hover-bg: #963523;
+  --bs-btn-hover-border-color: #963523;
+}
+.btn { font-weight: 500; }
+
+.form-control:focus,
+.form-select:focus,
+.form-check-input:focus {
+  border-color: var(--eucalyptus);
+  box-shadow: 0 0 0 0.2rem var(--bs-focus-ring-color);
+}
+.form-check-input:checked {
+  background-color: var(--eucalyptus);
+  border-color: var(--eucalyptus);
+}
+.form-label { font-weight: 500; margin-bottom: 0.3rem; }
+.form-text { color: var(--ink-muted); }
+
+:focus-visible {
+  outline: 2px solid var(--eucalyptus);
+  outline-offset: 2px;
+}
+
+/* ---- Shell ------------------------------------------------------------ */
+.app-shell {
+  display: flex;
+  min-height: 100vh;
+}
+
+.app-sidebar {
+  --bs-offcanvas-width: var(--sidebar-width);
+  --bs-offcanvas-bg: var(--eucalyptus);
+  --bs-offcanvas-color: #fff;
+  color: #fff;
+  overflow-y: auto;
+}
+/* Bootstrap makes .offcanvas-lg transparent on large screens; keep the green. */
+.app-sidebar.offcanvas-lg { background-color: var(--eucalyptus) !important; }
+
+@media (min-width: 992px) {
+  .app-sidebar {
+    width: var(--sidebar-width);
+    flex-shrink: 0;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+  }
+}
+
+.sidebar-inner {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  width: 100%;
+  padding: 1.5rem 1rem 1rem;
+}
+
+.sidebar-brand {
+  display: block;
+  color: #fff;
+  text-decoration: none;
+  padding: 0 0.5rem 1.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.18);
+  margin-bottom: 1rem;
+}
+.sidebar-brand:hover { color: #fff; }
+.sidebar-brand img {
+  max-height: 3rem;
+  max-width: 100%;
+  background: #fff;
+  border-radius: 0.375rem;
+  padding: 0.25rem;
+  margin-bottom: 0.75rem;
+}
+.sidebar-brand-name {
+  display: block;
+  font-size: 1.45rem;
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.015em;
+  overflow-wrap: anywhere;
+}
+.sidebar-brand-name.is-unset {
+  font-size: 1.05rem;
+  font-weight: 500;
+  opacity: 0.85;
+}
+
+.sidebar-nav .nav-link {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  color: rgba(255, 255, 255, 0.86);
+  border-radius: 0.375rem;
+  padding: 0.5rem 0.6rem;
+  font-weight: 500;
+}
+.sidebar-nav .nav-link .bi { font-size: 1.05rem; width: 1.2rem; }
+.sidebar-nav .nav-link:hover { color: #fff; background: rgba(255, 255, 255, 0.1); }
+.sidebar-nav .nav-link.active { color: var(--eucalyptus-dark); background: #fff; }
+.sidebar-nav .nav-link.disabled { color: rgba(255, 255, 255, 0.5); }
+.sidebar-nav .soon {
+  margin-left: auto;
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.6);
+}
+.sidebar-nav .nav-link:focus-visible { outline-color: #fff; }
+
+.sidebar-footer {
+  margin-top: auto;
+  padding: 1rem 0.5rem 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.18);
+  font-size: 0.9rem;
+}
+.sidebar-footer .btn-signout {
+  --bs-btn-color: #fff;
+  --bs-btn-border-color: rgba(255, 255, 255, 0.45);
+  --bs-btn-hover-bg: #fff;
+  --bs-btn-hover-color: var(--eucalyptus-dark);
+  --bs-btn-hover-border-color: #fff;
+}
+
+.app-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 1020;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: var(--eucalyptus);
+  color: #fff;
+  padding: 0.6rem 1rem;
+}
+.app-topbar .btn { color: #fff; border-color: rgba(255, 255, 255, 0.45); }
+.app-topbar-name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.app-main {
+  flex: 1;
+  min-width: 0;
+  padding: 1.75rem 1rem 3rem;
+}
+@media (min-width: 768px) {
+  .app-main { padding: 2.25rem 2.5rem 4rem; }
+}
+.app-content { max-width: 72rem; }
+
+.page-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 0.75rem 1rem;
+  margin-bottom: 1.5rem;
+}
+.page-header h1 { margin: 0; }
+.page-header .lead-text { color: var(--ink-muted); margin: 0.25rem 0 0; max-width: 60ch; }
+
+/* ---- Surfaces ---------------------------------------------------------- */
+.panel {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 0.5rem;
+  padding: 1.25rem;
+}
+@media (min-width: 768px) { .panel { padding: 1.5rem; } }
+.panel + .panel { margin-top: 1.25rem; }
+.panel > h2 { margin-bottom: 0.25rem; }
+.panel > .panel-intro { color: var(--ink-muted); margin-bottom: 1.25rem; max-width: 65ch; }
+
+.panel-attention {
+  background: var(--lemon-tint);
+  border-color: #ecd393;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 2rem 1rem;
+  color: var(--ink-muted);
+}
+.empty-state .bi { font-size: 1.8rem; color: var(--eucalyptus); display: block; margin-bottom: 0.5rem; }
+.empty-state p { margin: 0 auto; max-width: 42ch; }
+
+.table { --bs-table-bg: transparent; margin-bottom: 0; }
+.table > thead th {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--ink-muted);
+  border-bottom-color: var(--line);
+}
+
+.badge-low {
+  background: var(--lemon);
+  color: var(--ink);
+  font-weight: 600;
+}
+
+/* Setup steps: genuinely a sequence, so numbered */
+.setup-steps { list-style: none; counter-reset: step; padding: 0; margin: 0; }
+.setup-steps li {
+  counter-increment: step;
+  display: flex;
+  gap: 0.85rem;
+  align-items: baseline;
+  padding: 0.5rem 0;
+}
+.setup-steps li::before {
+  content: counter(step);
+  flex: none;
+  width: 1.6rem;
+  height: 1.6rem;
+  border-radius: 50%;
+  display: inline-grid;
+  place-items: center;
+  font-size: 0.85rem;
+  font-weight: 600;
+  background: #fff;
+  border: 1.5px solid var(--eucalyptus);
+  color: var(--eucalyptus);
+}
+.setup-steps li.done::before { content: "✓"; background: var(--eucalyptus); color: #fff; }
+.setup-steps li.done .step-text { color: var(--ink-muted); }
+
+/* Settings form sections */
+.form-section + .form-section {
+  margin-top: 2rem;
+  padding-top: 1.75rem;
+  border-top: 1px solid var(--line);
+}
+.form-section > legend { font-size: 1.15rem; font-weight: 600; }
+.form-section > .section-help { color: var(--ink-muted); margin-bottom: 1.1rem; max-width: 65ch; }
+.logo-preview {
+  max-height: 5rem;
+  max-width: 14rem;
+  border: 1px solid var(--line);
+  border-radius: 0.375rem;
+  padding: 0.35rem;
+  background: #fff;
+}
+.sticky-actions {
+  position: sticky;
+  bottom: 0;
+  background: linear-gradient(to top, #fff 70%, rgba(255, 255, 255, 0));
+  padding: 1rem 0 0.25rem;
+  margin-top: 1.5rem;
+}
+
+/* ---- Login ------------------------------------------------------------- */
+.login-page {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 1.5rem 1rem;
+  background: var(--eucalyptus);
+}
+.login-card {
+  width: 100%;
+  max-width: 24rem;
+  background: #fff;
+  border-radius: 0.6rem;
+  padding: 2rem 1.75rem;
+}
+.login-card h1 { font-size: 1.5rem; margin-bottom: 0.25rem; }
+.login-card .login-sub { color: var(--ink-muted); margin-bottom: 1.5rem; }
+.login-logo { max-height: 3.5rem; max-width: 100%; margin-bottom: 1rem; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; }
+}
+
+/* Inputs stay white on both the page and panels */
+.form-control,
+.form-select { background-color: #fff; }

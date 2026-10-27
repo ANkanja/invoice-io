@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Settings{% endblock %}
+{% block page_title %}Settings{% endblock %}
+{% block page_intro %}<p class="lead-text">Your business details and the defaults used on invoices. Changes apply to new invoices only; issued invoices keep the details they were issued with.</p>{% endblock %}
+{% block head %}<script type="module" src="{% static 'dist/settings.js' %}"></script>{% endblock %}
+
+{% block content %}
+<form method="post" enctype="multipart/form-data" class="panel" novalidate>
+  {% csrf_token %}
+  {% if form.non_field_errors %}<div class="alert alert-danger">{{ form.non_field_errors }}</div>{% endif %}
+
+  {% for title, help_text, fields in form.sections %}
+  <fieldset class="form-section">
+    <legend class="h2 mb-1">{{ title }}</legend>
+    <p class="section-help">{{ help_text }}</p>
+    <div class="row g-x-4">
+      {% for field in fields %}
+        {% if field.name == "logo" %}
+        <div class="col-12">
+          <div class="mb-3">
+            <label class="form-label" for="{{ field.id_for_label }}">Logo</label>
+            <div class="d-flex flex-wrap align-items-center gap-3 mb-2">
+              <img id="logo-preview" class="logo-preview" alt="Logo preview"
+                   {% if form.instance.logo %}src="{{ form.instance.logo.url }}"{% else %}hidden{% endif %}>
+            </div>
+            {{ field }}
+            <div class="form-text">PNG, JPEG or WebP, up to {{ max_upload_mb }} MB. A transparent PNG looks best on invoices.</div>
+            <div class="invalid-feedback" id="logo-client-error"></div>
+            {% for error in field.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+          </div>
+        </div>
+        {% elif field.field.widget.input_type == "checkbox" or field.name in form.WIDE_FIELDS %}
+        <div class="col-12">{% include "partials/_field.html" %}</div>
+        {% else %}
+        <div class="col-md-6">{% include "partials/_field.html" %}</div>
+        {% endif %}
+      {% endfor %}
+    </div>
+  </fieldset>
+  {% endfor %}
+
+  <div class="sticky-actions">
+    <button type="submit" class="btn btn-primary px-4" data-busy-text="Saving…">Save settings</button>
+  </div>
+</form>
+{% endblock %}

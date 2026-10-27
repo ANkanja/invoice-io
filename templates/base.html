@@ -1,0 +1,58 @@
+{% load static %}<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}{% endblock %} · {{ business.name|default:"invoicing_io" }}</title>
+  <link rel="stylesheet" href="{% static 'dist/main.css' %}">
+  <script type="module" src="{% static 'dist/main.js' %}"></script>
+  {% block head %}{% endblock %}
+</head>
+<body>
+  <a class="visually-hidden-focusable position-absolute top-0 start-0 p-2 bg-white" href="#main">Skip to content</a>
+
+  <header class="app-topbar d-lg-none">
+    <button class="btn btn-sm" type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebar"
+            aria-controls="sidebar" aria-label="Open menu">
+      <i class="bi bi-list" aria-hidden="true"></i>
+    </button>
+    <span class="app-topbar-name">{{ business.name|default:"Set up your business" }}</span>
+  </header>
+
+  <div class="app-shell">
+    {% include "partials/_sidebar.html" %}
+
+    <main class="app-main" id="main">
+      <div class="app-content">
+        {% include "partials/_messages.html" %}
+        <div class="page-header">
+          <div>
+            <h1>{% block page_title %}{% endblock %}</h1>
+            {% block page_intro %}{% endblock %}
+          </div>
+          <div class="d-flex gap-2 flex-wrap">{% block page_actions %}{% endblock %}</div>
+        </div>
+        {% block content %}{% endblock %}
+      </div>
+    </main>
+  </div>
+
+  {# One shared confirmation dialog, driven by static/ts/lib/confirm.ts #}
+  <div class="modal fade" id="confirm-modal" tabindex="-1" aria-labelledby="confirm-modal-title" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 class="modal-title h5" id="confirm-modal-title">Are you sure?</h2>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body"><p class="mb-0" data-confirm-message></p></div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Go back</button>
+          <button type="button" class="btn btn-danger" data-confirm-ok>Confirm</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

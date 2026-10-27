@@ -1,0 +1,16 @@
+{% comment %}Renders one form field with Bootstrap markup: {% include "partials/_field.html" with field=form.name %}{% endcomment %}
+{% if field.field.widget.input_type == "checkbox" %}
+<div class="form-check mb-3">
+  {{ field }}
+  <label class="form-check-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+  {% if field.help_text %}<div class="form-text" id="{{ field.auto_id }}_helptext">{{ field.help_text }}</div>{% endif %}
+  {% for error in field.errors %}<div class="invalid-feedback">{{ error }}</div>{% endfor %}
+</div>
+{% else %}
+<div class="mb-3">
+  <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %} <span class="text-danger" aria-hidden="true">*</span>{% endif %}</label>
+  {{ field }}
+  {% if field.help_text %}<div class="form-text" id="{{ field.auto_id }}_helptext">{{ field.help_text }}</div>{% endif %}
+  {% for error in field.errors %}<div class="invalid-feedback">{{ error }}</div>{% endfor %}
+</div>
+{% endif %}

@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Local config and data — never commit
+.env
+db.sqlite3
+db.sqlite3-journal
+media/
+staticfiles/
+backups/
+
+# Frontend
+node_modules/
+static/dist/
+
+# Editors / OS
+.vscode/
+.idea/
+Thumbs.db
+.DS_Store

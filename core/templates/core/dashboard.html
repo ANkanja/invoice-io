@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% load formatting %}
+{% block title %}Dashboard{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block content %}
+{% if not business_ready %}
+<section class="panel panel-attention" aria-labelledby="setup-title">
+  <h2 id="setup-title">Finish setting up</h2>
+  <p class="panel-intro">Invoices can't be issued until your business details are in place.</p>
+  <ol class="setup-steps">
+    <li><span class="step-text"><a href="{% url 'core:settings' %}">Add your business name, phone number and logo</a></span></li>
+    <li class="{% if product_count %}done{% endif %}"><span class="step-text">Add the products you sell{% if product_count %} ({{ product_count }} added){% endif %}</span></li>
+    <li class="{% if has_stock %}done{% endif %}"><span class="step-text">Record your opening stock</span></li>
+  </ol>
+</section>
+{% endif %}
+
+<section class="panel" aria-labelledby="low-stock-title">
+  <div class="d-flex flex-wrap justify-content-between align-items-baseline gap-2 mb-3">
+    <h2 id="low-stock-title" class="mb-0">Low stock</h2>
+    {% if low_stock_total %}<span class="badge badge-low">{{ low_stock_total }} product{{ low_stock_total|pluralize }}</span>{% endif %}
+  </div>
+
+  {% if low_stock %}
+  <div class="table-responsive">
+    <table class="table align-middle">
+      <thead>
+        <tr><th scope="col">Product</th><th scope="col" class="d-none d-sm-table-cell">Category</th><th scope="col" class="num">In stock</th><th scope="col" class="num">Alert at</th></tr>
+      </thead>
+      <tbody>
+        {% for p in low_stock %}
+        <tr>
+          <td>{{ p }}</td>
+          <td class="d-none d-sm-table-cell">{{ p.category|default:"—" }}</td>
+          <td class="num{% if p.stock_qty <= 0 %} text-danger fw-semibold{% endif %}">{{ p.stock_qty|qty }} {{ p.unit }}</td>
+          <td class="num">{{ p.low_stock_threshold|qty }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% if low_stock_total > low_stock|length %}<p class="text-secondary small mt-2 mb-0">Showing the {{ low_stock|length }} lowest.</p>{% endif %}
+  {% elif tracked_count %}
+  <div class="empty-state">
+    <i class="bi bi-check2-circle" aria-hidden="true"></i>
+    <p>All {{ tracked_count }} stock-tracked product{{ tracked_count|pluralize }} are above their alert level.</p>
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <i class="bi bi-box-seam" aria-hidden="true"></i>
+    <p>Low-stock alerts appear here once you add products with an alert level and record stock.</p>
+  </div>
+  {% endif %}
+</section>
+{% endblock %}

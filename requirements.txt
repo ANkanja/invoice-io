@@ -1,0 +1,6 @@
+# Runtime dependencies (pinned). Production-only extras (psycopg, gunicorn) are added in Phase 7.
+Django==5.2.18
+django-environ==0.14.0
+pillow==13.0.0
+reportlab==5.1.0
+whitenoise==6.12.0

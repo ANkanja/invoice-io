@@ -1,0 +1,40 @@
+{% load static %}<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sign in</title>
+  <link rel="stylesheet" href="{% static 'dist/main.css' %}">
+  <script type="module" src="{% static 'dist/main.js' %}"></script>
+</head>
+<body>
+  <main class="login-page">
+    <div class="login-card">
+      <h1>Sign in</h1>
+      <p class="login-sub">Invoices, stock and payments for your business.</p>
+
+      {% if form.non_field_errors %}
+      <div class="alert alert-danger" role="alert">
+        {% for error in form.non_field_errors %}{{ error }}{% endfor %}
+      </div>
+      {% endif %}
+
+      <form method="post" novalidate>
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{{ next }}">
+        <div class="mb-3">
+          <label class="form-label" for="id_username">Username</label>
+          <input class="form-control" type="text" name="username" id="id_username" autocomplete="username"
+                 autocapitalize="none" value="{{ form.username.value|default:'' }}" required autofocus>
+        </div>
+        <div class="mb-4">
+          <label class="form-label" for="id_password">Password</label>
+          <input class="form-control" type="password" name="password" id="id_password"
+                 autocomplete="current-password" required>
+        </div>
+        <button type="submit" class="btn btn-primary w-100" data-busy-text="Signing in…">Sign in</button>
+      </form>
+    </div>
+  </main>
+</body>
+</html>
