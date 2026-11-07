@@ -196,8 +196,8 @@ class AmendViewTests(AmendTestBase):
         old = self.client.get(rev_url)
         self.assertContains(old, "Superseded")
         self.assertContains(old, "2 containers")
-        pdf = self.client.get(reverse("invoices:revision_pdf", args=[self.invoice.pk, 1]))
-        self.assertEqual(pdf["Content-Type"], "application/pdf")
+        image = self.client.get(reverse("invoices:revision_image", args=[self.invoice.pk, 1]))
+        self.assertEqual(image["Content-Type"], "image/png")
         self.assertEqual(self.client.get(reverse("invoices:revision", args=[self.invoice.pk, 9])).status_code, 404)
 
     def test_not_enough_stock_shows_a_message(self):

@@ -4,8 +4,8 @@
 {% block page_title %}{% if invoice.number %}Invoice {{ invoice.number }}{% else %}Draft invoice{% endif %}{% endblock %}
 {% block page_intro %}<p class="lead-text">{% if invoice.customer %}<a href="{% url 'customers:detail' invoice.customer.pk %}">{{ invoice.customer_name }}</a>{% else %}{{ invoice.customer_name }}{% endif %} <span class="status-pill status-{{ invoice.payment_state }}">{{ invoice.payment_state_display }}</span></p>{% endblock %}
 {% block page_actions %}
-  <a class="btn btn-outline-primary" href="{% url 'invoices:pdf' invoice.pk %}" target="_blank" rel="noopener"><i class="bi bi-printer" aria-hidden="true"></i> {% if invoice.status == "draft" %}Preview PDF{% else %}View / print PDF{% endif %}</a>
-  {% if invoice.status != "draft" %}<a class="btn btn-outline-primary" href="{% url 'invoices:pdf' invoice.pk %}?download=1"><i class="bi bi-download" aria-hidden="true"></i> Download</a>{% endif %}
+  <a class="btn btn-outline-primary" href="{% url 'invoices:image' invoice.pk %}" target="_blank" rel="noopener"><i class="bi bi-image" aria-hidden="true"></i> {% if invoice.status == "draft" %}Preview image{% else %}View / print image{% endif %}</a>
+  {% if invoice.status != "draft" %}<a class="btn btn-outline-primary" href="{% url 'invoices:image' invoice.pk %}?download=1"><i class="bi bi-download" aria-hidden="true"></i> Download</a>{% endif %}
   {% if invoice.status == "draft" and perms.invoices.change_invoice %}
     <a class="btn btn-outline-primary" href="{% url 'invoices:edit' invoice.pk %}"><i class="bi bi-pencil" aria-hidden="true"></i> Edit</a>
   {% endif %}

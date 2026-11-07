@@ -11,12 +11,14 @@ built, and known limitations. `README.md` has setup and the business rules.
 - Windows PC, Python 3.13 in `.venv`, Django 5.2 LTS, SQLite (PostgreSQL later).
 - Bootstrap 5 + TypeScript (strict) built by Vite into `static/dist/` with fixed
   file names. Page scripts are registered in `vite.config.ts`.
-- ReportLab for PDFs (`invoices/pdf.py`, `payments/pdf.py`), Pillow for images.
+- Invoices are PNG images: ReportLab lays out one page and pypdfium2 turns it into a
+  picture (`invoices/pdf.py`). Receipts are still PDFs (`payments/pdf.py`). Pillow
+  handles uploaded images.
 - Settings come from `.env` (never commit it; never print the secret key).
 
 ## Commands (PowerShell, venv active)
 - Run: `python manage.py runserver`
-- Tests: `python manage.py test` (all must pass; 219 at end of Phase 4)
+- Tests: `python manage.py test` (all must pass; 223 now)
 - Front end: `npm run typecheck`, `npm run build`
 - Migrations: `python manage.py makemigrations --check --dry-run` must be clean.
 

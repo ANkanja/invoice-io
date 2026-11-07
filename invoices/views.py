@@ -20,7 +20,7 @@ from . import services
 from .forms import (AmendInvoiceForm, CancelInvoiceForm, InvoiceFilterForm, InvoiceHeaderForm, make_line_formset,
                     options_for, products_for)
 from .models import Invoice, InvoiceLine, InvoiceRevision
-from .pdf import invoice_filename, render_invoice_pdf
+from .pdf import invoice_filename, render_invoice_image
 
 Status = Invoice.Status
 
@@ -310,11 +310,11 @@ def invoice_revision(request, pk: int, revision_no: int):
 
 @require_GET
 @perm_required("invoices.view_invoice")
-def invoice_revision_pdf(request, pk: int, revision_no: int):
+def invoice_revision_image(request, pk: int, revision_no: int):
     revision, old, lines, superseded = _revision(pk, revision_no)
-    pdf = render_invoice_pdf(old, lines=lines, superseded_on=superseded)
-    name = invoice_filename(old).replace(".pdf", f"_rev{revision_no}.pdf")
-    response = FileResponse(pdf, content_type="application/pdf", as_attachment=request.GET.get("download") == "1",
+    image = render_invoice_image(old, lines=lines, superseded_on=superseded)
+    name = invoice_filename(old).replace(".png", f"_rev{revision_no}.png")
+    response = FileResponse(image, content_type="image/png", as_attachment=request.GET.get("download") == "1",
                             filename=name)
     response["Cache-Control"] = "private, no-store"
     return response
@@ -401,10 +401,10 @@ def invoice_delete(request, pk: int):
 
 @require_GET
 @perm_required("invoices.view_invoice")
-def invoice_pdf(request, pk: int):
+def invoice_image(request, pk: int):
     invoice = get_object_or_404(Invoice, pk=pk)
-    pdf = render_invoice_pdf(invoice)
-    response = FileResponse(pdf, content_type="application/pdf",
+    image = render_invoice_image(invoice)
+    response = FileResponse(image, content_type="image/png",
                             as_attachment=request.GET.get("download") == "1",
                             filename=invoice_filename(invoice))
     response["Cache-Control"] = "private, no-store"

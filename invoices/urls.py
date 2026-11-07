@@ -11,11 +11,11 @@ urlpatterns = [
     path("<int:pk>/edit/", views.invoice_edit, name="edit"),
     path("<int:pk>/amend/", views.invoice_amend, name="amend"),
     path("<int:pk>/revisions/<int:revision_no>/", views.invoice_revision, name="revision"),
-    path("<int:pk>/revisions/<int:revision_no>/pdf/", views.invoice_revision_pdf, name="revision_pdf"),
+    path("<int:pk>/revisions/<int:revision_no>/image/", views.invoice_revision_image, name="revision_image"),
     path("<int:pk>/issue/", views.invoice_issue, name="issue"),
     path("<int:pk>/cancel/", views.invoice_cancel, name="cancel"),
     path("<int:pk>/replace/", views.invoice_replace, name="replace"),
     path("<int:pk>/duplicate/", views.invoice_duplicate, name="duplicate"),
     path("<int:pk>/delete/", views.invoice_delete, name="delete"),
-    path("<int:pk>/pdf/", views.invoice_pdf, name="pdf"),
+    path("<int:pk>/image/", views.invoice_image, name="image"),
 ]

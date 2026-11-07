@@ -322,12 +322,12 @@ class InvoicePermissionTests(TestCase):
         services.add_line(inv, product=p, quantity="1")
         self.client.force_login(make_staff(perms=("invoices.view_invoice",)))
         self.assertEqual(self.client.get(reverse("invoices:detail", args=[inv.pk])).status_code, 200)
-        self.assertEqual(self.client.get(reverse("invoices:pdf", args=[inv.pk])).status_code, 200)
+        self.assertEqual(self.client.get(reverse("invoices:image", args=[inv.pk])).status_code, 200)
         self.assertEqual(self.client.post(reverse("invoices:issue", args=[inv.pk])).status_code, 403)
         self.assertEqual(self.client.get(reverse("invoices:create")).status_code, 403)
         self.assertEqual(self.client.post(reverse("invoices:delete", args=[inv.pk])).status_code, 403)
         self.assertNotContains(self.client.get(reverse("invoices:detail", args=[inv.pk])), "Issue invoice</button>")
 
-    def test_anonymous_cannot_download_pdf(self):
-        r = self.client.get(reverse("invoices:pdf", args=[1]))
+    def test_anonymous_cannot_download_image(self):
+        r = self.client.get(reverse("invoices:image", args=[1]))
         self.assertEqual(r.status_code, 302)

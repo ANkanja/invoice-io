@@ -1,14 +1,14 @@
 # invoicing_io
 
 A private web app for running a soap and cleaning-products business: products,
-stock, customers, invoices (with PDF), payments, and template-based promotional
+stock, customers, invoices (as images), payments, and template-based promotional
 posters.
 
 Built with Django 5.2 LTS, server-rendered templates, Bootstrap 5.3 and
 TypeScript (compiled by Vite). SQLite is used for local development and
 PostgreSQL in production.
 
-> **Status:** Phases 1–3 (foundation; products, customers and stock; invoices with PDF) are complete. See `planning/PROGRESS.md` for
+> **Status:** Phases 1–4 (foundation; products, customers and stock; invoices; payments and dashboard) are complete. See `planning/PROGRESS.md` for
 > what's done, what's next and known limitations. `planning/PHASE0_PLAN.md`
 > has the agreed architecture.
 
@@ -57,7 +57,7 @@ Open http://127.0.0.1:8000, sign in, then:
 1. **Settings**: enter your business details. Invoices can't be issued until the business name and phone number are set.
 2. **Products → Add product**: add each item you sell once, with how its stock is counted and the first way you sell it. See **Setting up your products** below.
 3. **Customers → Add customer**: add the schools, hospitals and people you supply regularly. One-time buyers don't need saving.
-4. **Invoices → New invoice**: choose the customer, add lines (press Enter to move along), then **Save and review**. Check the review page and press **Issue invoice**: it gets its number and stock is deducted. Use **View / print PDF** or **Download** to send it.
+4. **Invoices → New invoice**: choose the customer, add lines (press Enter to move along), then **Save and review**. Check the review page and press **Issue invoice**: it gets its number and stock is deducted. Use **View / print image** or **Download** to send it: every invoice is one PNG picture, with payment details at the bottom. A long invoice makes a taller picture rather than a second page.
 5. **Payments**: when money comes in, press **Record payment** on the invoice (or on the customer's page, or under Payments). One payment can be split across several of the customer's invoices; type the amount and it fills the oldest first. Anything left over is kept as **credit** and can be applied later (the invoice page offers a one-click "Use credit" button). Each payment has a printable **Receipt**.
    A payment entered by mistake, a bounced cheque or a refund is **reversed** with a reason, never deleted.
 6. **Dashboard**: invoiced vs received today, this week and this month; what you're owed and what's overdue; recent invoices and payments; best sellers this month; low stock.

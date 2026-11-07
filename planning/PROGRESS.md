@@ -225,6 +225,20 @@ Verified:
   M-Pesa payment that fills an invoice and leaves credit, receipt PDF, list,
   customer page, dashboard. No console errors, no sideways scrolling.
 
+## Invoices as images (after Phase 4) — done
+
+Requested: invoices produced as images instead of PDFs, and payment details at
+the bottom rather than bunched under the totals. Decisions:
+- Every invoice is one PNG, A4 shaped at 200 dpi (1654 px wide). A long invoice
+  makes a taller image rather than a second page, so there's one file to send.
+- Payment details, terms, notes and the cancellation reason sit at the bottom.
+- ReportLab still does the layout; `pypdfium2` (new dependency) makes the picture.
+- Earlier versions of amended invoices are images too. Receipts are still PDFs.
+- No stored data changed: images are made on request from the stored invoice, so
+  old invoices get the new layout automatically.
+
+Verified: 223 tests pass; real invoices rendered from a copy of the live database.
+
 ## Next: Phase 5 — posters
 - Needs your answers first (D7): what your poster templates are (Canva/Photoshop
   exports? PNG/JPG/PDF?), which sizes (square, story, A4) and whether you have the

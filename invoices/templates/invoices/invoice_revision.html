@@ -4,7 +4,7 @@
 {% block page_title %}Invoice {{ current.number }}: earlier version{% endblock %}
 {% block page_intro %}<p class="lead-text">Version {{ revision.revision_no }}, replaced on {{ superseded|date:"j M Y, H:i" }} by {{ revision.created_by }}.</p>{% endblock %}
 {% block page_actions %}
-  <a class="btn btn-outline-primary" href="{% url 'invoices:revision_pdf' current.pk revision.revision_no %}" target="_blank" rel="noopener"><i class="bi bi-printer" aria-hidden="true"></i> View PDF</a>
+  <a class="btn btn-outline-primary" href="{% url 'invoices:revision_image' current.pk revision.revision_no %}" target="_blank" rel="noopener"><i class="bi bi-image" aria-hidden="true"></i> View image</a>
   <a class="btn btn-primary" href="{% url 'invoices:detail' current.pk %}">Go to current version</a>
 {% endblock %}
 {% block content %}
