@@ -69,6 +69,13 @@ RIGHT_BOLD = ParagraphStyle("right_bold", parent=BOLD, alignment=TA_RIGHT)
 CELL = ParagraphStyle("cell", parent=BASE, alignment=TA_LEFT)
 HEAD = ParagraphStyle("head", parent=BASE, fontName="Helvetica-Bold", fontSize=8.5, textColor=colors.white)
 HEAD_R = ParagraphStyle("head_r", parent=HEAD, alignment=TA_RIGHT)
+# The small grey second line under an item or price ("1L", "per L"), set a little apart.
+SUB = ParagraphStyle("sub", parent=SMALL, fontSize=8, leading=10, spaceBefore=2.5 * mm)
+SUB_R = ParagraphStyle("sub_r", parent=SUB, alignment=TA_RIGHT)
+
+# Space above and below the text in each item row and each totals row (points).
+ROW_PAD = 9
+TOTALS_PAD = 5
 
 
 def _p(text, style=BASE) -> Paragraph:
@@ -211,13 +218,13 @@ def _lines_table(invoice: Invoice, lines, money):
     rows = [head]
     for i, line in enumerate(lines, start=1):
         detail = line.package_size if line.package_size and line.package_size != line.description else ""
-        desc = escape(line.description)
+        desc = [_p(line.description, CELL)]
         if detail:
-            desc += f'<br/><font size="8" color="#5B6B67">{escape(detail)}</font>'
-        price = escape(money(line.unit_price))
+            desc.append(_p(detail, SUB))
+        price = [_p(money(line.unit_price), RIGHT)]
         if per := line.price_display_unit:
-            price += f'<br/><font size="8" color="#5B6B67">{escape(per)}</font>'
-        row = [_p(i, SMALL), Paragraph(desc, CELL), _p(line.quantity_display, RIGHT), Paragraph(price, RIGHT)]
+            price.append(_p(per, SUB_R))
+        row = [_p(i, SMALL), desc, _p(line.quantity_display, RIGHT), price]
         if show_discount:
             row.append(_p(money(line.line_discount) if line.line_discount else "", RIGHT))
         row.append(_p(money(line.line_total), RIGHT))
@@ -227,8 +234,8 @@ def _lines_table(invoice: Invoice, lines, money):
     table.setStyle(TableStyle([
         ("BACKGROUND", (0, 0), (-1, 0), EUCALYPTUS),
         ("VALIGN", (0, 0), (-1, -1), "TOP"),
-        ("TOPPADDING", (0, 0), (-1, -1), 5),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+        ("TOPPADDING", (0, 0), (-1, -1), ROW_PAD),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), ROW_PAD),
         ("LINEBELOW", (0, 1), (-1, -1), 0.5, LINE),
         ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#F7FAF9")]),
     ]))
@@ -254,7 +261,8 @@ def _totals(invoice: Invoice, amount_paid, balance, money, show_payments=True):
         data[idx] = [_p(rows[idx][0], RIGHT_BOLD), _p(rows[idx][1], RIGHT_BOLD)]
     t = Table(data, colWidths=[40 * mm, 36 * mm], hAlign="RIGHT")
     t.setStyle(TableStyle([("LINEABOVE", (0, total_row), (-1, total_row), 0.8, INK),
-                           ("TOPPADDING", (0, 0), (-1, -1), 2), ("BOTTOMPADDING", (0, 0), (-1, -1), 2)]))
+                           ("TOPPADDING", (0, 0), (-1, -1), TOTALS_PAD),
+                           ("BOTTOMPADDING", (0, 0), (-1, -1), TOTALS_PAD)]))
     return t
 
 
