@@ -1,0 +1,62 @@
+{% comment %}The invoice as a document. Used by the detail page and for earlier revisions.{% endcomment %}
+{% load formatting %}
+<article class="panel invoice-doc" aria-label="Invoice">
+  <header class="doc-head">
+    <div>
+      <div class="doc-seller">{{ seller.name|default:"Your business name" }}</div>
+      <div class="doc-small">{% if seller.address %}{{ seller.address|linebreaksbr }}<br>{% endif %}{{ seller.phone }}{% if seller.email %}<br>{{ seller.email }}{% endif %}{% if seller.kra_pin %}<br>KRA PIN: {{ seller.kra_pin }}{% endif %}</div>
+    </div>
+    <dl class="doc-meta">
+      <dt>Invoice no.</dt><dd>{{ invoice.number|default:"Not issued yet" }}</dd>
+      <dt>Date</dt><dd>{{ invoice.issue_date|date:"j M Y" }}</dd>
+      {% if invoice.due_date %}<dt>Due</dt><dd>{{ invoice.due_date|date:"j M Y" }}</dd>{% endif %}
+      {% if superseded %}<dt>Version</dt><dd>Revision {{ invoice.revision }}</dd>
+      {% elif invoice.revision > 1 and invoice.last_amended_at %}<dt>Revised</dt><dd>{{ invoice.last_amended_at|date:"j M Y" }} (rev. {{ invoice.revision }})</dd>{% endif %}
+    </dl>
+  </header>
+  <section class="doc-billto">
+    <div class="doc-label">Bill to</div>
+    <div class="fw-semibold">{{ invoice.customer_name }}</div>
+    <div class="doc-small">
+      {% if invoice.customer_contact_person %}Attn: {{ invoice.customer_contact_person }}<br>{% endif %}
+      {% if invoice.customer_address %}{{ invoice.customer_address|linebreaksbr }}<br>{% endif %}
+      {{ invoice.customer_phone }}{% if invoice.customer_email %}<br>{{ invoice.customer_email }}{% endif %}
+      {% if invoice.customer_tax_pin %}<br>KRA PIN: {{ invoice.customer_tax_pin }}{% endif %}
+    </div>
+  </section>
+  <div class="table-responsive">
+    <table class="table doc-lines align-top">
+      <thead><tr>
+        <th scope="col">Item</th><th scope="col" class="num">Qty</th><th scope="col" class="num d-none d-sm-table-cell">Price</th>
+        {% if has_line_discounts %}<th scope="col" class="num d-none d-sm-table-cell">Discount</th>{% endif %}
+        <th scope="col" class="num">Amount</th>
+      </tr></thead>
+      <tbody>
+        {% for line in lines %}
+        <tr>
+          <td>{{ line.description }}{% if line.package_size and line.package_size != line.description %}<div class="doc-small">{{ line.package_size }}</div>{% endif %}
+            <div class="doc-small d-sm-none">at {{ line.unit_price|money:invoice.currency }} {{ line.price_display_unit }}{% if line.line_discount %}, less {{ line.line_discount|money:invoice.currency }}{% endif %}</div>
+            {% if line.is_price_overridden %}<div class="doc-small d-none d-sm-block">Usual price {{ line.catalogue_price|money:invoice.currency }}</div>{% endif %}</td>
+          <td class="num text-nowrap">{{ line.quantity_display }}</td>
+          <td class="num d-none d-sm-table-cell">{{ line.unit_price|money:invoice.currency }}{% if line.price_display_unit %}<div class="doc-small">{{ line.price_display_unit }}</div>{% endif %}</td>
+          {% if has_line_discounts %}<td class="num d-none d-sm-table-cell">{% if line.line_discount %}{{ line.line_discount|money:invoice.currency }}{% endif %}</td>{% endif %}
+          <td class="num">{{ line.line_total|money:invoice.currency }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <dl class="totals-list doc-totals">
+    <dt>Subtotal</dt><dd>{{ invoice.subtotal|money:invoice.currency }}</dd>
+    {% if invoice.invoice_discount %}<dt>Discount</dt><dd>- {{ invoice.invoice_discount|money:invoice.currency }}</dd>{% endif %}
+    {% if invoice.tax_rate %}<dt>{{ invoice.tax_label|default:"Tax" }} {{ invoice.tax_rate|qty }}%{% if invoice.prices_include_tax %} (included){% endif %}</dt><dd>{{ invoice.tax_total|money:invoice.currency }}</dd>{% endif %}
+    <dt class="grand">Total</dt><dd class="grand">{{ invoice.total|money:invoice.currency }}</dd>
+  </dl>
+  {% if seller.payment_instructions or invoice.payment_terms or invoice.notes %}
+  <footer class="doc-notes">
+    {% if seller.payment_instructions %}<div><div class="doc-label">Payment details</div>{{ seller.payment_instructions|linebreaksbr }}</div>{% endif %}
+    {% if invoice.payment_terms %}<div><div class="doc-label">Payment terms</div>{{ invoice.payment_terms|linebreaksbr }}</div>{% endif %}
+    {% if invoice.notes %}<div><div class="doc-label">Notes</div>{{ invoice.notes|linebreaksbr }}</div>{% endif %}
+  </footer>
+  {% endif %}
+</article>

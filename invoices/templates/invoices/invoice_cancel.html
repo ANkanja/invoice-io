@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% load formatting %}
+{% block title %}Cancel {{ invoice.number }}{% endblock %}
+{% block page_title %}Cancel invoice {{ invoice.number }}{% endblock %}
+{% block page_intro %}<p class="lead-text">{{ invoice.customer_name }}, {{ invoice.total|money:invoice.currency }}, issued {{ invoice.issue_date|date:"j M Y" }}.</p>{% endblock %}
+
+{% block content %}
+<form method="post" class="panel form-narrow" novalidate>
+  {% csrf_token %}
+  {% if form.non_field_errors %}<div class="alert alert-danger">{% for e in form.non_field_errors %}{{ e }}{% endfor %}</div>{% endif %}
+  <p>Cancelling keeps the invoice and its number on record, marked <strong>Cancelled</strong>, and returns its items to stock. It can't be undone.</p>
+  <p>Just need to add or fix a line? Use <a href="{% url 'invoices:amend' invoice.pk %}">Amend</a> instead: the invoice keeps its number.</p>
+  <p>To start over, choose <strong>Cancel and create replacement</strong>: you get a new draft with the same details to fix and issue.</p>
+  {% if invoice.amount_paid %}
+  <div class="alert alert-info"><strong>{{ invoice.amount_paid|money:invoice.currency }} has been paid on this invoice.</strong> That money stays recorded as credit for {{ invoice.customer_name }}. It's applied to the replacement automatically when you issue it, or you can apply it to another invoice from the payment's page.</div>
+  {% endif %}
+  {% include "partials/_field.html" with field=form.reason %}
+  <div class="d-flex flex-wrap gap-2">
+    {% if perms.invoices.add_invoice %}<button class="btn btn-primary" type="submit" name="replace" value="1" data-busy-text="Cancelling…">Cancel and create replacement</button>{% endif %}
+    <button class="btn btn-outline-danger" type="submit" data-busy-text="Cancelling…">Cancel invoice only</button>
+    <a class="btn btn-link" href="{% url 'invoices:detail' invoice.pk %}">Go back</a>
+  </div>
+</form>
+{% endblock %}

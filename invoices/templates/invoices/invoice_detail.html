@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+{% load formatting %}
+{% block title %}{% if invoice.number %}Invoice {{ invoice.number }}{% else %}Draft invoice{% endif %}{% endblock %}
+{% block page_title %}{% if invoice.number %}Invoice {{ invoice.number }}{% else %}Draft invoice{% endif %}{% endblock %}
+{% block page_intro %}<p class="lead-text">{% if invoice.customer %}<a href="{% url 'customers:detail' invoice.customer.pk %}">{{ invoice.customer_name }}</a>{% else %}{{ invoice.customer_name }}{% endif %} <span class="status-pill status-{{ invoice.payment_state }}">{{ invoice.payment_state_display }}</span></p>{% endblock %}
+{% block page_actions %}
+  <a class="btn btn-outline-primary" href="{% url 'invoices:pdf' invoice.pk %}" target="_blank" rel="noopener"><i class="bi bi-printer" aria-hidden="true"></i> {% if invoice.status == "draft" %}Preview PDF{% else %}View / print PDF{% endif %}</a>
+  {% if invoice.status != "draft" %}<a class="btn btn-outline-primary" href="{% url 'invoices:pdf' invoice.pk %}?download=1"><i class="bi bi-download" aria-hidden="true"></i> Download</a>{% endif %}
+  {% if invoice.status == "draft" and perms.invoices.change_invoice %}
+    <a class="btn btn-outline-primary" href="{% url 'invoices:edit' invoice.pk %}"><i class="bi bi-pencil" aria-hidden="true"></i> Edit</a>
+  {% endif %}
+  {% if invoice.status == "issued" and perms.invoices.amend_invoice %}
+    <a class="btn btn-outline-primary" href="{% url 'invoices:amend' invoice.pk %}"><i class="bi bi-pencil-square" aria-hidden="true"></i> Amend</a>
+  {% endif %}
+  {% if invoice.status == "draft" and perms.invoices.issue_invoice %}
+  <form method="post" action="{% url 'invoices:issue' invoice.pk %}" class="d-inline"
+        data-confirm="Issue this invoice to {{ invoice.customer_name }} for {{ invoice.total|money:invoice.currency }}? It gets its invoice number, stock is deducted, and later changes are made with Amend, which keeps the history."
+        data-confirm-button="Issue invoice">
+    {% csrf_token %}<button class="btn btn-primary" type="submit" {% if not business_ready %}disabled{% endif %}><i class="bi bi-send-check" aria-hidden="true"></i> Issue invoice</button>
+  </form>
+  {% endif %}
+{% endblock %}
+
+{% block content %}
+{% if invoice.status == "draft" %}
+  {% if not business_ready %}
+  <div class="alert alert-warning">Add your business name and phone number in {% if perms.core.change_businesssettings %}<a href="{% url 'core:settings' %}">Settings</a>{% else %}Settings{% endif %} before issuing invoices.</div>
+  {% endif %}
+  {% if stock_warnings %}
+  <div class="alert {% if allow_negative_stock %}alert-warning{% else %}alert-danger{% endif %}">
+    <strong>{% if allow_negative_stock %}Stock will go below zero:{% else %}Not enough stock to issue this invoice:{% endif %}</strong>
+    <ul class="mb-1">{% for w in stock_warnings %}<li>{{ w }}</li>{% endfor %}</ul>
+    {% if not allow_negative_stock %}Record the stock first{% if perms.inventory.add_stockmovement %} (<a href="{% url 'inventory:stock_in' %}">Stock in</a>){% endif %}, or reduce the quantities.{% endif %}
+  </div>
+  {% endif %}
+  <div class="alert alert-info">This is a draft. Check it, then press <strong>Issue invoice</strong> to give it a number and deduct stock.</div>
+{% endif %}
+{% if invoice.status == "cancelled" %}
+<div class="alert alert-secondary">
+  <strong>Cancelled</strong> on {{ invoice.cancelled_at|date:"j M Y" }} by {{ invoice.cancelled_by }}. Reason: {{ invoice.cancel_reason }}
+  {% if replacement %}<br>Replaced by <a href="{% url 'invoices:detail' replacement.pk %}">{% if replacement.number %}{{ replacement.number }}{% else %}a draft{% endif %}</a>.{% endif %}
+</div>
+{% endif %}
+{% if invoice.revision > 1 and invoice.status == "issued" %}
+<div class="alert alert-info">Amended {{ invoice.last_amended_at|date:"j M Y" }} by {{ invoice.last_amended_by }} (this is revision {{ invoice.revision }}). Earlier versions are listed under <a href="#history-title">History</a>.</div>
+{% endif %}
+{% if invoice.replaces %}<p class="small text-secondary">Replaces cancelled invoice <a href="{% url 'invoices:detail' invoice.replaces.pk %}">{{ invoice.replaces.number }}</a>.</p>{% endif %}
+
+<div class="row g-4">
+  <div class="col-xl-8">
+    {% include "invoices/_invoice_doc.html" %}
+  </div>
+
+  <div class="col-xl-4">
+    {% if invoice.status == "issued" %}
+    <section class="panel" aria-labelledby="pay-title">
+      <h2 id="pay-title">Payment</h2>
+      <dl class="totals-list">
+        <dt>Total</dt><dd>{{ invoice.total|money:invoice.currency }}</dd>
+        <dt>Paid</dt><dd>{{ invoice.amount_paid|money:invoice.currency }}</dd>
+        <dt class="grand">Balance</dt><dd class="grand {% if invoice.payment_state == 'overdue' %}text-danger{% endif %}">{{ invoice.balance|money:invoice.currency }}</dd>
+      </dl>
+      {% if allocations %}
+      <ul class="payment-list">
+        {% for a in allocations %}
+        <li class="{% if a.released_at or a.payment.is_reversed %}is-void{% endif %}">
+          <a href="{% url 'payments:detail' a.payment.pk %}">{{ a.payment.payment_date|date:"j M Y" }}</a>
+          · {{ a.payment.method }}{% if a.payment.reference %} {{ a.payment.reference }}{% endif %}
+          <span class="float-end">{{ a.amount|money:invoice.currency }}</span>
+          {% if a.payment.is_reversed %}<div class="small">Reversed: {{ a.payment.reversal_reason }}</div>{% elif a.released_at %}<div class="small">Released: {{ a.release_reason }}</div>{% endif %}
+        </li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+      {% if invoice.balance > 0 and perms.payments.add_payment %}
+      <a class="btn btn-primary w-100" href="{% url 'payments:create' %}?invoice={{ invoice.pk }}&next={{ request.path|urlencode }}"><i class="bi bi-cash-coin" aria-hidden="true"></i> Record payment</a>
+      {% for p in credit_payments %}
+      <form method="post" action="{% url 'payments:apply_to_invoice' p.pk invoice.pk %}" class="mt-2">
+        {% csrf_token %}
+        <button class="btn btn-outline-primary w-100 btn-sm" type="submit">Use {{ p.unallocated|money }} credit from {{ p.payment_date|date:"j M" }}</button>
+      </form>
+      {% endfor %}
+      {% elif invoice.balance <= 0 %}
+      <p class="small text-success mb-0"><i class="bi bi-check2-circle" aria-hidden="true"></i> Fully paid.</p>
+      {% endif %}
+    </section>
+    {% endif %}
+
+    <section class="panel" aria-labelledby="history-title">
+      <h2 id="history-title">History</h2>
+      <ul class="history-list">
+        <li>Created {{ invoice.created_at|date:"j M Y, H:i" }} by {{ invoice.created_by }}</li>
+        {% if invoice.issued_at %}<li>Issued {{ invoice.issued_at|date:"j M Y, H:i" }} by {{ invoice.issued_by }}</li>{% endif %}
+        {% for r in revisions reversed %}<li>Amended {{ r.created_at|date:"j M Y, H:i" }} by {{ r.created_by }}: {{ r.reason }}
+          <div class="small"><a href="{% url 'invoices:revision' invoice.pk r.revision_no %}">See version {{ r.revision_no }}</a> (before this change)</div></li>{% endfor %}
+        {% if invoice.cancelled_at %}<li>Cancelled {{ invoice.cancelled_at|date:"j M Y, H:i" }} by {{ invoice.cancelled_by }}</li>{% endif %}
+      </ul>
+    </section>
+
+    <section class="panel" aria-labelledby="more-title">
+      <h2 id="more-title">More actions</h2>
+      <div class="d-grid gap-2">
+        {% if perms.invoices.add_invoice %}
+        <form method="post" action="{% url 'invoices:duplicate' invoice.pk %}">
+          {% csrf_token %}<button class="btn btn-outline-primary w-100" type="submit"><i class="bi bi-copy" aria-hidden="true"></i> Duplicate as new draft</button>
+        </form>
+        {% endif %}
+        {% if invoice.status == "issued" and perms.invoices.cancel_invoice %}
+        <a class="btn btn-outline-danger" href="{% url 'invoices:cancel' invoice.pk %}">Cancel this invoice</a>
+        {% endif %}
+        {% if invoice.status == "cancelled" and not replacement and perms.invoices.add_invoice %}
+        <form method="post" action="{% url 'invoices:replace' invoice.pk %}">
+          {% csrf_token %}<button class="btn btn-outline-primary w-100" type="submit">Create replacement invoice</button>
+        </form>
+        {% endif %}
+        {% if invoice.status == "draft" and perms.invoices.delete_invoice %}
+        <form method="post" action="{% url 'invoices:delete' invoice.pk %}" data-confirm="Delete this draft? This can't be undone." data-confirm-button="Delete draft">
+          {% csrf_token %}<button class="btn btn-outline-danger w-100" type="submit">Delete draft</button>
+        </form>
+        {% endif %}
+      </div>
+    </section>
+  </div>
+</div>
+{% endblock %}

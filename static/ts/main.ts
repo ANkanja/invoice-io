@@ -15,7 +15,9 @@ import "../css/app.css";
 import "bootstrap";
 
 import { initConfirmDialogs } from "./lib/confirm";
+import { initAutoSubmit, initToggles } from "./lib/filters";
 import { initSubmitGuards } from "./lib/forms";
+import { initImagePreviews } from "./lib/image-preview";
 
 function ready(fn: () => void): void {
   if (document.readyState === "loading") {
@@ -28,4 +30,7 @@ function ready(fn: () => void): void {
 ready(() => {
   initConfirmDialogs();
   initSubmitGuards();
+  initAutoSubmit();
+  initToggles();
+  initImagePreviews();
 });

@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% load static formatting %}
+{% block title %}Record payment{% endblock %}
+{% block page_title %}Record payment{% endblock %}
+{% block page_intro %}<p class="lead-text">{% if invoice %}For invoice <a href="{% url 'invoices:detail' invoice.pk %}">{{ invoice.number }}</a>, {{ invoice.customer_name }}: {{ invoice.balance|money:invoice.currency }} still due.{% else %}Money you've received. Choose the customer to apply it to their invoices.{% endif %}</p>{% endblock %}
+{% block head %}<script type="module" src="{% static 'dist/payment-form.js' %}"></script>{% endblock %}
+
+{% block content %}
+<form method="post" novalidate data-payment-form>
+  {% csrf_token %}
+  {{ form.token }}
+  {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
+  {% if form.non_field_errors %}<div class="alert alert-danger" role="alert">{% for e in form.non_field_errors %}<div>{{ e }}</div>{% endfor %}</div>{% endif %}
+  <div class="row g-4">
+    <div class="col-lg-5">
+      <section class="panel" aria-labelledby="pay-title">
+        <h2 id="pay-title">Payment</h2>
+        {% include "partials/_field.html" with field=form.customer %}
+        {% include "partials/_field.html" with field=form.payer_name %}
+        <div class="row g-x-3">
+          <div class="col-sm-6">{% include "partials/_field.html" with field=form.amount %}</div>
+          <div class="col-sm-6">{% include "partials/_field.html" with field=form.payment_date %}</div>
+          <div class="col-sm-6">{% include "partials/_field.html" with field=form.method %}</div>
+          <div class="col-sm-6">{% include "partials/_field.html" with field=form.reference %}</div>
+        </div>
+        {% include "partials/_field.html" with field=form.notes %}
+      </section>
+    </div>
+    <div class="col-lg-7">
+      <section class="panel" aria-labelledby="apply-title">
+        <div class="d-flex flex-wrap justify-content-between align-items-baseline gap-2 mb-2">
+          <h2 id="apply-title" class="mb-0">Apply to invoices</h2>
+          {% if form.invoices %}<button type="button" class="btn btn-sm btn-outline-primary" data-auto-fill>Fill oldest first</button>{% endif %}
+        </div>
+        {% if form.invoices %}
+        {% include "payments/_allocation_table.html" %}
+        <dl class="totals-list mb-0" aria-live="polite">
+          <dt>Applied to invoices</dt><dd data-applied>—</dd>
+          <dt class="grand">Kept as credit</dt><dd class="grand" data-left>—</dd>
+        </dl>
+        <p class="small text-secondary mb-0" data-alloc-note>Anything not applied stays as credit on this payment; you can apply it later.</p>
+        {% elif customer %}
+        <div class="empty-state py-3"><i class="bi bi-check2-circle" aria-hidden="true"></i><p>{{ customer }} has no unpaid invoices. This payment will be kept as credit for them.</p></div>
+        {% else %}
+        <div class="empty-state py-3"><i class="bi bi-people" aria-hidden="true"></i><p>Choose a saved customer to see their unpaid invoices. Without one, the payment is kept as credit.</p></div>
+        {% endif %}
+        {% if credit > 0 %}<p class="small mt-2 mb-0">{{ customer }} also has {{ credit|money }} of unused credit from earlier payments; apply it from <a href="{% url 'payments:list' %}?customer={{ customer.pk }}&state=credit">their payments</a>.</p>{% endif %}
+      </section>
+    </div>
+  </div>
+  <div class="sticky-actions page-actions d-flex flex-wrap gap-2">
+    <button type="submit" class="btn btn-primary px-4" data-busy-text="Saving…">Record payment</button>
+    <a class="btn btn-link" href="{% if invoice %}{% url 'invoices:detail' invoice.pk %}{% else %}{% url 'payments:list' %}{% endif %}">Cancel</a>
+  </div>
+</form>
+{{ methods|json_script:"payment-methods" }}
+{% endblock %}

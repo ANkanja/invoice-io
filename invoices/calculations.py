@@ -5,7 +5,8 @@ single source of truth for every total the app stores or prints.
 Rules
 -----
 * Money is Decimal, rounded to cents with ROUND_HALF_UP at each line.
-* line gross   = quantity × unit price
+* line gross   = quantity in pricing units × unit price
+                 (e.g. 1,500 ml at KES 250 per L → 1.5 × 250; see products.pricing)
 * line total   = line gross − line discount (discount may not exceed gross)
 * subtotal     = Σ line totals
 * after disc.  = subtotal − invoice discount (may not exceed subtotal)
@@ -77,7 +78,11 @@ def calculate_invoice(
     tax_rate=ZERO,
     prices_include_tax: bool = False,
 ) -> InvoiceTotals:
-    results = tuple(calculate_line(l.quantity, l.unit_price, l.line_discount) for l in lines)
+    # Lines priced by measure carry price_quantity (e.g. 1,500 ml entered → 1.5 L);
+    # simple lines and LineInput use quantity directly.
+    results = tuple(
+        calculate_line(getattr(l, "price_quantity", None) or l.quantity, l.unit_price, l.line_discount) for l in lines
+    )
     subtotal = quantize(sum((r.total for r in results), ZERO))
     line_discounts = quantize(sum((r.discount for r in results), ZERO))
 

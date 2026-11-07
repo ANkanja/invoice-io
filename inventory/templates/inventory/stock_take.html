@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% load static formatting %}
+{% block title %}Stock take{% endblock %}
+{% block page_title %}Stock take{% endblock %}
+{% block page_intro %}<p class="lead-text">Count what's on your shelves and type the numbers in. Leave a box empty to skip that product. Only differences are recorded, as adjustments.</p>{% endblock %}
+{% block head %}<script type="module" src="{% static 'dist/stock-take.js' %}"></script>{% endblock %}
+
+{% block content %}
+{% include "inventory/_stock_nav.html" with active="take" %}
+
+{% if categories %}
+<form method="get" class="filter-bar">
+  <div>
+    <label class="visually-hidden" for="take-category">Category</label>
+    <select id="take-category" name="category" class="form-select" data-auto-submit>
+      <option value="">All categories</option>
+      {% for c in categories %}<option value="{{ c.pk }}" {% if selected_category == c.pk|stringformat:"d" %}selected{% endif %}>{{ c.name }}</option>{% endfor %}
+    </select>
+  </div>
+</form>
+{% endif %}
+
+{% if not form.products %}
+<div class="panel empty-state"><i class="bi bi-box-seam" aria-hidden="true"></i><p>No stock-tracked products{% if selected_category %} in this category{% endif %}.</p></div>
+{% else %}
+<form method="post" class="panel" novalidate>
+  {% csrf_token %}
+  {{ form.token }}
+  {% if form.non_field_errors %}<div class="alert alert-danger" role="alert">{% for e in form.non_field_errors %}{{ e }}{% endfor %}</div>{% endif %}
+  <div class="table-responsive">
+    <table class="table align-middle take-table">
+      <thead><tr><th scope="col">Product</th><th scope="col" class="num">In system</th><th scope="col" class="num">Counted</th><th scope="col" class="num d-none d-sm-table-cell">Difference</th></tr></thead>
+      <tbody>
+        {% for product, field, unit in form.rows %}
+        <tr>
+          <td><label for="{{ field.id_for_label }}" class="fw-medium">{{ product.name }}</label>
+              <div class="small text-secondary">{{ product.options_summary|default:"No selling options yet" }}</div></td>
+          <td class="num">{{ product.stock_display }}</td>
+          <td class="num count-cell"><div class="input-group input-group-sm count-group">{{ field }}<span class="input-group-text">{{ unit }}</span></div><div class="diff-inline d-sm-none" data-diff-for="{{ field.id_for_label }}" aria-hidden="true"></div>{% for e in field.errors %}<div class="invalid-feedback d-block">{{ e }}</div>{% endfor %}</td>
+          <td class="num diff-cell d-none d-sm-table-cell" data-diff-for="{{ field.id_for_label }}">—</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="row g-2 align-items-end mt-2">
+    <div class="col-md-6"><label class="form-label" for="{{ form.notes.id_for_label }}">{{ form.notes.label }}</label>{{ form.notes }}</div>
+    <div class="col-md-6 d-flex gap-2 justify-content-md-end">
+      <button type="submit" class="btn btn-primary px-4" data-busy-text="Saving…">Save stock take</button>
+    </div>
+  </div>
+</form>
+{% endif %}
+{% endblock %}

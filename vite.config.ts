@@ -22,7 +22,11 @@ export default defineConfig(({ mode }) => ({
     rollupOptions: {
       input: {
         main: resolve(import.meta.dirname, "static/ts/main.ts"),
-        settings: resolve(import.meta.dirname, "static/ts/settings.ts"),
+        "stock-form": resolve(import.meta.dirname, "static/ts/stock-form.ts"),
+        "stock-take": resolve(import.meta.dirname, "static/ts/stock-take.ts"),
+        "invoice-editor": resolve(import.meta.dirname, "static/ts/invoice-editor.ts"),
+        "product-form": resolve(import.meta.dirname, "static/ts/product-form.ts"),
+        "payment-form": resolve(import.meta.dirname, "static/ts/payment-form.ts"),
       },
       output: {
         entryFileNames: "[name].js",

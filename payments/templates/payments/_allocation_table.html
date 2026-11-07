@@ -1,0 +1,18 @@
+{% comment %}Rows of "apply to this invoice" boxes. Expects `form` with allocation_rows.{% endcomment %}
+{% load formatting %}
+<div class="table-responsive">
+  <table class="table align-middle alloc-table mb-2">
+    <thead><tr><th scope="col">Invoice</th><th scope="col" class="d-none d-sm-table-cell">Date</th><th scope="col" class="num">Still due</th><th scope="col" class="num">Apply (KES)</th></tr></thead>
+    <tbody>
+      {% for inv, field in form.allocation_rows %}
+      <tr{% if invoice and invoice.pk == inv.pk %} data-preferred{% endif %}>
+        <td><label for="{{ field.id_for_label }}" class="fw-medium mb-0">{{ inv.number }}</label>
+          <div class="small text-secondary">{% if inv.due_date %}due {{ inv.due_date|date:"j M Y" }}{% if inv.due_date < today %} <span class="text-danger">overdue</span>{% endif %}{% else %}{{ inv.issue_date|date:"j M Y" }}{% endif %}</div></td>
+        <td class="d-none d-sm-table-cell text-nowrap">{{ inv.issue_date|date:"j M Y" }}</td>
+        <td class="num">{{ inv.balance|money:inv.currency }}</td>
+        <td class="num alloc-cell">{{ field }}{% for e in field.errors %}<div class="invalid-feedback d-block">{{ e }}</div>{% endfor %}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>

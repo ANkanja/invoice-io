@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% load formatting %}
+{% block title %}Payment from {{ payment.payer_name }}{% endblock %}
+{% block page_title %}Payment of {{ payment.amount|money }}{% endblock %}
+{% block page_intro %}<p class="lead-text">From {% if payment.customer %}<a href="{% url 'customers:detail' payment.customer.pk %}">{{ payment.payer_name }}</a>{% else %}{{ payment.payer_name }}{% endif %}, {{ payment.payment_date|date:"j M Y" }}{% if payment.is_reversed %} <span class="badge text-bg-secondary align-middle">Reversed</span>{% endif %}</p>{% endblock %}
+{% block page_actions %}
+  <a class="btn btn-outline-primary" href="{% url 'payments:receipt' payment.pk %}" target="_blank" rel="noopener"><i class="bi bi-printer" aria-hidden="true"></i> Receipt</a>
+  {% if not payment.is_reversed and perms.payments.reverse_payment %}<a class="btn btn-outline-danger" href="{% url 'payments:reverse' payment.pk %}">Reverse</a>{% endif %}
+{% endblock %}
+
+{% block content %}
+{% if payment.is_reversed %}
+<div class="alert alert-secondary"><strong>Reversed</strong> on {{ payment.reversed_at|date:"j M Y" }} by {{ payment.reversed_by }}: {{ payment.reversal_reason }}. It no longer counts towards any invoice.</div>
+{% endif %}
+<div class="row g-4">
+  <div class="col-lg-5">
+    <section class="panel" aria-label="Payment details">
+      <dl class="detail-list">
+        <dt>Amount</dt><dd class="fw-semibold">{{ payment.amount|money }}</dd>
+        <dt>Date</dt><dd>{{ payment.payment_date|date:"j M Y" }}</dd>
+        <dt>Method</dt><dd>{{ payment.method }}</dd>
+        <dt>Reference</dt><dd>{{ payment.reference|default:"—" }}</dd>
+        <dt>Receipt no.</dt><dd>PAY-{{ payment.pk|stringformat:"06d" }}</dd>
+        {% if payment.notes %}<dt>Notes</dt><dd>{{ payment.notes|linebreaksbr }}</dd>{% endif %}
+        <dt>Recorded</dt><dd>{{ payment.created_at|date:"j M Y, H:i" }} by {{ payment.created_by }}</dd>
+      </dl>
+    </section>
+  </div>
+  <div class="col-lg-7">
+    <section class="panel" aria-labelledby="alloc-title">
+      <h2 id="alloc-title">Applied to</h2>
+      {% if allocations %}
+      <div class="table-responsive">
+        <table class="table align-middle">
+          <thead><tr><th scope="col">Invoice</th><th scope="col" class="num">Amount</th><th scope="col" class="d-none d-sm-table-cell">When</th></tr></thead>
+          <tbody>
+            {% for a in allocations %}
+            <tr class="{% if a.released_at %}text-secondary{% endif %}">
+              <td><a href="{% url 'invoices:detail' a.invoice.pk %}">{{ a.invoice.number }}</a>
+                {% if a.released_at %}<div class="small">Released {{ a.released_at|date:"j M Y" }}: {{ a.release_reason }}</div>{% endif %}</td>
+              <td class="num">{% if a.released_at %}<s>{{ a.amount|money:a.invoice.currency }}</s>{% else %}{{ a.amount|money:a.invoice.currency }}{% endif %}</td>
+              <td class="d-none d-sm-table-cell text-nowrap">{{ a.created_at|date:"j M Y" }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <p class="text-secondary">Not applied to any invoice.</p>
+      {% endif %}
+      {% if not payment.is_reversed %}
+      <dl class="totals-list mb-0">
+        <dt>Applied</dt><dd>{{ payment.allocated|money }}</dd>
+        <dt class="grand">Credit left</dt><dd class="grand">{{ credit|money }}</dd>
+      </dl>
+      {% endif %}
+    </section>
+
+    {% if apply_form %}
+    <section class="panel" aria-labelledby="credit-title">
+      <h2 id="credit-title">Apply the credit</h2>
+      {% if apply_form.invoices %}
+      <form method="post" action="{% url 'payments:apply' payment.pk %}" novalidate>
+        {% csrf_token %}
+        {% with form=apply_form %}{% include "payments/_allocation_table.html" %}{% endwith %}
+        <button type="submit" class="btn btn-primary" data-busy-text="Applying…">Apply credit</button>
+      </form>
+      {% else %}
+      <p class="text-secondary mb-0">{{ payment.customer }} has no unpaid invoices right now. The credit stays here until you need it.</p>
+      {% endif %}
+    </section>
+    {% elif credit > 0 and not payment.customer %}
+    <p class="small text-secondary">This payment isn't linked to a saved customer, so its credit can be applied from an invoice's page.</p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

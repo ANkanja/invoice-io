@@ -44,7 +44,7 @@ class SettingsPageTests(TestCase):
     def test_page_renders_empty(self):
         response = self.client.get(self.url)
         self.assertContains(response, "Business details")
-        self.assertContains(response, "dist/settings.js")
+        self.assertContains(response, 'data-image-preview="logo-preview"')
 
     def test_save_normalises_and_audits(self):
         response = self.client.post(self.url, VALID_SETTINGS)
@@ -145,3 +145,13 @@ class DashboardTests(TestCase):
         self.assertContains(response, "Test Business")
         self.assertContains(response, 'aria-disabled="true"')
         self.assertNotContains(response, 'href="#"')
+
+
+class PermissionTests(TestCase):
+    def test_staff_without_permission_gets_403(self):
+        from core.testing import make_staff
+        self.client.force_login(make_staff())
+        self.assertEqual(self.client.get(reverse("core:settings")).status_code, 403)
+        self.assertEqual(self.client.get(reverse("core:dashboard")).status_code, 200)
+        page = self.client.get(reverse("core:dashboard"))
+        self.assertNotContains(page, reverse("core:settings"))  # link hidden too

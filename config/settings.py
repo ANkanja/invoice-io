@@ -34,7 +34,7 @@ if len(SECRET_KEY) < 32:
     raise ImproperlyConfigured(
         "SECRET_KEY is missing or too short in your .env file.\n"
         "Generate one with:\n"
-        '  python -c "from django.core.management.utils import get_random_secret_key as g; print(g())"\n'
+        '  python -c "import secrets; print(secrets.token_urlsafe(50))"\n'
         "and paste it after SECRET_KEY= in .env (no quotes, no spaces)."
     )
 DEBUG = env("DEBUG")
@@ -127,6 +127,11 @@ USE_TZ = True
 # --- Static and media files -------------------------------------------------
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
+if DEBUG:
+    # staticfiles/ only exists after `collectstatic` (production); don't warn about it locally.
+    import warnings
+
+    warnings.filterwarnings("ignore", message=r"No directory at: .*staticfiles")
 STATICFILES_DIRS = [BASE_DIR / "static"]
 
 # Uploaded files. Served ONLY through the login-protected view in core.views.
@@ -171,3 +176,11 @@ LOGGING = {
     "root": {"handlers": ["console"], "level": "INFO"},
     "loggers": {"django": {"handlers": ["console"], "level": env("DJANGO_LOG_LEVEL", default="INFO"), "propagate": False}},
 }
+
+# Keep `manage.py test` output readable: many tests deliberately trigger 403/404/405
+# responses, which Django would otherwise log as warnings with full tracebacks.
+import sys  # noqa: E402
+
+if len(sys.argv) > 1 and sys.argv[1] == "test":
+    LOGGING["loggers"]["django.request"] = {"handlers": ["console"], "level": "ERROR", "propagate": False}
+    LOGGING["loggers"]["django.security.csrf"] = {"handlers": ["console"], "level": "ERROR", "propagate": False}

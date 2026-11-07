@@ -36,9 +36,10 @@ def format_money(value, currency: str = "KES") -> str:
 
 
 def format_quantity(value) -> str:
-    """Drop trailing zeros: 2.00 -> '2', 2.50 -> '2.5'."""
+    """For display: drop trailing zeros and group thousands:
+    2.00 -> '2', 2.50 -> '2.5', 1500 -> '1,500'."""
     d = to_decimal(value)
-    text = f"{d:f}"
+    text = f"{d:,f}"
     if "." in text:
         text = text.rstrip("0").rstrip(".")
     return text or "0"

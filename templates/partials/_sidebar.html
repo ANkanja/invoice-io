@@ -1,4 +1,4 @@
-{% with current=request.resolver_match.url_name %}
+{% with current=request.resolver_match.url_name ns=request.resolver_match.namespace %}
 <aside class="app-sidebar offcanvas-lg offcanvas-start" tabindex="-1" id="sidebar" aria-label="Main navigation">
   <div class="offcanvas-header d-lg-none pb-0">
     <button type="button" class="btn-close btn-close-white ms-auto" data-bs-dismiss="offcanvas"
@@ -22,17 +22,29 @@
             <i class="bi bi-speedometer2" aria-hidden="true"></i>Dashboard</a>
         </li>
         {# Sections not built yet are shown, but not clickable, so there are no dead links. #}
-        <li class="nav-item"><span class="nav-link disabled" aria-disabled="true"><i class="bi bi-file-earmark-text" aria-hidden="true"></i>Invoices<span class="soon">Soon</span></span></li>
-        <li class="nav-item"><span class="nav-link disabled" aria-disabled="true"><i class="bi bi-cash-coin" aria-hidden="true"></i>Payments<span class="soon">Soon</span></span></li>
-        <li class="nav-item"><span class="nav-link disabled" aria-disabled="true"><i class="bi bi-people" aria-hidden="true"></i>Customers<span class="soon">Soon</span></span></li>
-        <li class="nav-item"><span class="nav-link disabled" aria-disabled="true"><i class="bi bi-droplet" aria-hidden="true"></i>Products<span class="soon">Soon</span></span></li>
-        <li class="nav-item"><span class="nav-link disabled" aria-disabled="true"><i class="bi bi-box-seam" aria-hidden="true"></i>Stock<span class="soon">Soon</span></span></li>
+        {% if perms.invoices.view_invoice %}
+        <li class="nav-item"><a class="nav-link{% if ns == 'invoices' %} active{% endif %}" href="{% url 'invoices:list' %}" {% if ns == 'invoices' %}aria-current="page"{% endif %}><i class="bi bi-file-earmark-text" aria-hidden="true"></i>Invoices</a></li>
+        {% endif %}
+        {% if perms.payments.view_payment %}
+        <li class="nav-item"><a class="nav-link{% if ns == 'payments' %} active{% endif %}" href="{% url 'payments:list' %}" {% if ns == 'payments' %}aria-current="page"{% endif %}><i class="bi bi-cash-coin" aria-hidden="true"></i>Payments</a></li>
+        {% endif %}
+        {% if perms.customers.view_customer %}
+        <li class="nav-item"><a class="nav-link{% if ns == 'customers' %} active{% endif %}" href="{% url 'customers:list' %}" {% if ns == 'customers' %}aria-current="page"{% endif %}><i class="bi bi-people" aria-hidden="true"></i>Customers</a></li>
+        {% endif %}
+        {% if perms.products.view_product %}
+        <li class="nav-item"><a class="nav-link{% if ns == 'products' %} active{% endif %}" href="{% url 'products:list' %}" {% if ns == 'products' %}aria-current="page"{% endif %}><i class="bi bi-droplet" aria-hidden="true"></i>Products</a></li>
+        {% endif %}
+        {% if perms.inventory.view_stockmovement %}
+        <li class="nav-item"><a class="nav-link{% if ns == 'inventory' %} active{% endif %}" href="{% url 'inventory:overview' %}" {% if ns == 'inventory' %}aria-current="page"{% endif %}><i class="bi bi-box-seam" aria-hidden="true"></i>Stock{% if low_stock_count %}<span class="nav-count" title="Low or out of stock">{{ low_stock_count }}</span>{% endif %}</a></li>
+        {% endif %}
         <li class="nav-item"><span class="nav-link disabled" aria-disabled="true"><i class="bi bi-image" aria-hidden="true"></i>Posters<span class="soon">Soon</span></span></li>
+        {% if perms.core.change_businesssettings %}
         <li class="nav-item mt-2">
-          <a class="nav-link{% if current == 'settings' %} active{% endif %}" href="{% url 'core:settings' %}"
+          <a class="nav-link{% if current == 'settings' and ns == 'core' %} active{% endif %}" href="{% url 'core:settings' %}"
              {% if current == 'settings' %}aria-current="page"{% endif %}>
             <i class="bi bi-gear" aria-hidden="true"></i>Settings</a>
         </li>
+        {% endif %}
         {% if user.is_staff %}
         <li class="nav-item">
           <a class="nav-link" href="{% url 'admin:index' %}"><i class="bi bi-database" aria-hidden="true"></i>Data admin</a>

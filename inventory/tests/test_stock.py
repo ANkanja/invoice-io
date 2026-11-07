@@ -6,7 +6,7 @@ from django.db import IntegrityError, transaction
 from django.test import TestCase
 
 from core.models import ImmutableRecordError
-from core.testing import configure_business, make_product, make_user
+from core.testing import configure_business, make_product, make_user, unit
 from inventory.models import StockMovement
 from inventory.services import (
     InsufficientStockError, StockError, find_stock_discrepancies, record_stock_count, record_stock_in,
@@ -33,7 +33,7 @@ class StockServiceTests(TestCase):
         self.assertEqual(self.qty(), D("17"))
 
     def test_rejects_bad_quantities(self):
-        for bad in ["0", "-1", "1.005"]:
+        for bad in ["0", "-1", "1.0005"]:  # stock units allow 3 decimals (e.g. 1.5 ml)
             with self.subTest(bad=bad), self.assertRaises(StockError):
                 record_stock_in(self.p, bad, self.user)
 
@@ -96,13 +96,13 @@ class StaleProductSaveTests(TestCase):
         p = make_product()
         stale = Product.objects.get(pk=p.pk)  # loaded while stock is 0
         record_stock_in(p, "40", user)
-        stale.default_price = D("120.00")
+        stale.name = "Renamed"
         stale.save()  # e.g. a product edit form submitted from an old page
         p.refresh_from_db()
-        self.assertEqual((p.stock_qty, p.default_price), (D("40"), D("120.00")))
+        self.assertEqual((p.stock_qty, p.name), (D("40"), "Renamed"))
         self.assertEqual(find_stock_discrepancies(), [])
 
     def test_new_product_starts_at_zero_stock(self):
-        p = Product.objects.create(name="X", unit="piece", default_price=D("1"), stock_qty=D("50"))
+        p = Product.objects.create(name="X", stock_unit=unit("piece"), stock_qty=D("50"))
         p.refresh_from_db()
         self.assertEqual(p.stock_qty, D("0"))

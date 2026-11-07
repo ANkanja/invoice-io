@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% load formatting stock %}
+{% block title %}{{ product }}{% endblock %}
+{% block page_title %}{{ product.name }}{% endblock %}
+{% block page_intro %}
+<p class="lead-text">{{ product.category|default:"No category" }}{% if not product.is_active %} <span class="badge text-bg-secondary align-middle">Archived</span>{% endif %}</p>
+{% endblock %}
+{% block page_actions %}
+  <a class="btn btn-outline-primary" href="{% url 'products:list' %}">All products</a>
+  {% if perms.products.change_product %}<a class="btn btn-primary" href="{% url 'products:edit' product.pk %}"><i class="bi bi-pencil" aria-hidden="true"></i> Edit</a>{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+  <div class="col-lg-5">
+    <section class="panel" aria-label="Product details">
+      {% if product.photo %}
+        <a href="{{ product.photo.url }}" target="_blank" rel="noopener"><img class="product-photo mb-3" src="{{ product.photo.url }}" alt="Photo of {{ product }}"></a>
+      {% else %}
+        <div class="product-photo product-photo-empty mb-3"><i class="bi bi-image" aria-hidden="true"></i><span>No photo yet</span></div>
+      {% endif %}
+      <dl class="detail-list">
+        <dt>Stock counted in</dt><dd>{{ product.stock_unit.plural }}</dd>
+        <dt>SKU</dt><dd>{{ product.sku|default:"—" }}</dd>
+        {% if product.description %}<dt>Description</dt><dd>{{ product.description|linebreaksbr }}</dd>{% endif %}
+      </dl>
+    </section>
+
+    <section class="panel" aria-labelledby="options-title">
+      <div class="d-flex justify-content-between align-items-baseline gap-2">
+        <h2 id="options-title">Ways to sell</h2>
+        {% if perms.products.change_product %}<a class="btn btn-sm btn-outline-primary" href="{% url 'products:option_create' product.pk %}"><i class="bi bi-plus-lg" aria-hidden="true"></i> Add</a>{% endif %}
+      </div>
+      {% if options %}
+      <ul class="option-list">
+        {% for o in options %}
+        <li class="{% if not o.is_active %}is-inactive{% endif %}">
+          <div>
+            <div class="fw-medium">{{ o.label }}{% if o.is_default %} <span class="badge text-bg-light border">Default</span>{% endif %}{% if not o.is_active %} <span class="badge text-bg-secondary">Not offered</span>{% endif %}</div>
+            <div class="small text-secondary">{% if o.method == "package" %}{{ o.content_display }} each, fixed price{% else %}priced by measure{% endif %}{% if o.cost_price is not None %}; cost {{ o.cost_price|money }}{% endif %}</div>
+          </div>
+          <div class="text-end">
+            <div class="fw-semibold num-left">{{ o.price|money }}</div>
+            <div class="small text-secondary">{{ o.price_per_label }}</div>
+            {% if perms.products.change_product %}<a class="small" href="{% url 'products:option_edit' product.pk o.pk %}">Edit</a>{% endif %}
+          </div>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <p class="text-secondary mb-0">No ways to sell yet, so it can't go on an invoice. Add one.</p>
+      {% endif %}
+    </section>
+  </div>
+
+  <div class="col-lg-7">
+    <section class="panel" aria-labelledby="stock-title">
+      <h2 id="stock-title">Stock</h2>
+      {% if product.track_stock %}
+        <p class="stock-figure {% if product.stock_qty <= 0 %}is-out{% elif product.is_low_stock %}is-low{% endif %}">
+          <span class="num-left">{{ product.stock_display }}</span> in stock
+        </p>
+        <p class="text-secondary mb-3">
+          {% if product.stock_qty <= 0 %}Out of stock.{% elif product.is_low_stock %}Low: at or below the alert level of {{ product.threshold_display }}.{% elif product.low_stock_threshold is not None %}Alert when it falls to {{ product.threshold_display }}.{% else %}No low-stock alert set.{% endif %}
+        </p>
+        {% if perms.inventory.add_stockmovement and product.is_active %}
+        <div class="d-flex flex-wrap gap-2 mb-4">
+          <a class="btn btn-primary btn-sm" href="{% url 'inventory:stock_in' %}?product={{ product.pk }}"><i class="bi bi-box-arrow-in-down" aria-hidden="true"></i> Stock in</a>
+          <a class="btn btn-outline-primary btn-sm" href="{% url 'inventory:stock_out' %}?product={{ product.pk }}"><i class="bi bi-box-arrow-up" aria-hidden="true"></i> Stock out</a>
+          <a class="btn btn-outline-primary btn-sm" href="{% url 'inventory:count' %}?product={{ product.pk }}"><i class="bi bi-clipboard-check" aria-hidden="true"></i> Count</a>
+        </div>
+        {% endif %}
+
+        <h3 class="h6 fw-semibold">Recent movements</h3>
+        {% if movements %}
+        <div class="table-responsive">
+          <table class="table table-sm align-middle">
+            <thead><tr><th scope="col">When</th><th scope="col">What</th><th scope="col" class="num">Change</th><th scope="col" class="num">Balance</th></tr></thead>
+            <tbody>
+              {% for m in movements %}
+              <tr>
+                <td class="text-nowrap">{{ m.created_at|date:"j M Y" }}</td>
+                <td>{% include "inventory/_movement_label.html" %}</td>
+                <td class="num {% if m.quantity < 0 %}text-danger{% else %}text-success{% endif %}">{% stock_amount m.quantity product signed=True %}</td>
+                <td class="num">{% stock_amount m.balance_after product %}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        <a class="small" href="{% url 'inventory:movements' %}?product={{ product.pk }}">Full stock history</a>
+        {% else %}
+        <p class="text-secondary mb-0">No stock recorded yet.{% if perms.inventory.add_stockmovement and product.is_active %} Use <strong>Stock in</strong> to record what you have.{% endif %}</p>
+        {% endif %}
+      {% else %}
+        <p class="text-secondary mb-0">Stock isn't tracked for this product. Turn it on under Edit if you hold stock of it.</p>
+      {% endif %}
+    </section>
+
+    {% if perms.products.change_product %}
+    <section class="panel" aria-labelledby="status-title">
+      <h2 id="status-title">{% if product.is_active %}Archive product{% else %}Restore product{% endif %}</h2>
+      {% if product.is_active %}
+      <p class="panel-intro">Stop selling it: it disappears from invoice and stock pickers. Past invoices and stock history are kept.</p>
+      <form method="post" action="{% url 'products:archive' product.pk %}"
+            data-confirm="Archive {{ product }}? You can restore it at any time." data-confirm-button="Archive product">
+        {% csrf_token %}<button class="btn btn-outline-danger btn-sm" type="submit">Archive product</button>
+      </form>
+      {% else %}
+      <p class="panel-intro">Make it available on invoices and stock screens again.</p>
+      <form method="post" action="{% url 'products:restore' product.pk %}">
+        {% csrf_token %}<button class="btn btn-outline-primary btn-sm" type="submit">Restore product</button>
+      </form>
+      {% endif %}
+    </section>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

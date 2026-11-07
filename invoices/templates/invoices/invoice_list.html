@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% load formatting %}
+{% block title %}Invoices{% endblock %}
+{% block page_title %}Invoices{% endblock %}
+{% block page_actions %}
+  {% if perms.invoices.add_invoice %}<a class="btn btn-primary" href="{% url 'invoices:create' %}"><i class="bi bi-plus-lg" aria-hidden="true"></i> New invoice</a>{% endif %}
+{% endblock %}
+
+{% block content %}
+{% if not has_any %}
+<div class="panel empty-state">
+  <i class="bi bi-file-earmark-text" aria-hidden="true"></i>
+  <p class="mb-3">No invoices yet. Create one from your products and customers; it stays a draft until you issue it.</p>
+  {% if perms.invoices.add_invoice %}<a class="btn btn-primary" href="{% url 'invoices:create' %}">Create your first invoice</a>{% endif %}
+</div>
+{% else %}
+<form method="get" class="filter-bar" role="search">
+  <div class="filter-search"><label class="visually-hidden" for="{{ filter_form.q.id_for_label }}">Search</label>{{ filter_form.q }}</div>
+  <div><label class="visually-hidden" for="{{ filter_form.state.id_for_label }}">Status</label>{{ filter_form.state }}</div>
+  <div><label class="visually-hidden" for="{{ filter_form.customer.id_for_label }}">Customer</label>{{ filter_form.customer }}</div>
+  <div class="d-flex align-items-center gap-1"><label class="small text-secondary" for="{{ filter_form.date_from.id_for_label }}">From</label>{{ filter_form.date_from }}</div>
+  <div class="d-flex align-items-center gap-1"><label class="small text-secondary" for="{{ filter_form.date_to.id_for_label }}">To</label>{{ filter_form.date_to }}</div>
+  <div class="d-flex gap-2">
+    <button class="btn btn-outline-primary" type="submit">Search</button>
+    {% if filtered %}<a class="btn btn-link px-1" href="{% url 'invoices:list' %}">Clear</a>{% endif %}
+  </div>
+</form>
+
+<div class="panel p-0">
+  {% if page.object_list %}
+  <div class="table-responsive">
+    <table class="table align-middle table-hover mb-0 list-table">
+      <thead><tr>
+        <th scope="col">Invoice</th><th scope="col">Customer</th><th scope="col" class="d-none d-md-table-cell">Date</th>
+        <th scope="col" class="num">Total</th><th scope="col" class="num d-none d-sm-table-cell">Paid</th><th scope="col" class="num">Balance</th><th scope="col">Status</th>
+      </tr></thead>
+      <tbody>
+        {% for inv in page.object_list %}
+        <tr>
+          <td class="text-nowrap"><a class="row-link fw-medium" href="{% url 'invoices:detail' inv.pk %}">{{ inv.number|default:"Draft" }}</a>
+            <div class="small text-secondary d-md-none">{{ inv.issue_date|date:"j M Y" }}</div></td>
+          <td>{{ inv.customer_name }}</td>
+          <td class="d-none d-md-table-cell text-nowrap">{{ inv.issue_date|date:"j M Y" }}{% if inv.due_date and inv.status == "issued" %}<div class="small text-secondary">due {{ inv.due_date|date:"j M" }}</div>{% endif %}</td>
+          <td class="num">{{ inv.total|money:inv.currency }}</td>
+          <td class="num d-none d-sm-table-cell">{% if inv.status == "issued" %}{{ inv.amount_paid|money:inv.currency }}{% else %}—{% endif %}</td>
+          <td class="num">{% if inv.status == "issued" %}{{ inv.balance|money:inv.currency }}{% else %}—{% endif %}</td>
+          <td>{% include "invoices/_status.html" %}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+      {% if totals.total %}
+      <tfoot>
+        <tr class="list-totals">
+          <th scope="row" colspan="2" class="d-none d-md-table-cell">Issued invoices matching these filters</th>
+          <th scope="row" class="d-md-none" colspan="2">Issued, matching</th>
+          <td class="d-none d-md-table-cell"></td>
+          <td class="num">{{ totals.total|money }}</td>
+          <td class="num d-none d-sm-table-cell">{{ totals.paid|money }}</td>
+          <td class="num">{{ totals.balance|money }}</td>
+          <td></td>
+        </tr>
+      </tfoot>
+      {% endif %}
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state"><i class="bi bi-search" aria-hidden="true"></i><p>No invoices match. <a href="{% url 'invoices:list' %}">Show all</a></p></div>
+  {% endif %}
+</div>
+{% include "partials/_pagination.html" %}
+{% endif %}
+{% endblock %}

@@ -6,7 +6,7 @@ from django.db import IntegrityError, transaction
 from django.test import TestCase
 
 from core.models import AuditLog, ImmutableRecordError
-from core.testing import configure_business, make_customer, make_product, make_user
+from core.testing import configure_business, make_customer, make_product, make_user, set_price
 from inventory.models import StockMovement
 from inventory.services import InsufficientStockError, find_stock_discrepancies, record_stock_in
 from invoices import services
@@ -194,7 +194,7 @@ class ImmutabilityTests(InvoiceTestBase):
     def test_catalogue_changes_do_not_alter_issued_invoice(self):
         inv = services.issue_invoice(self.draft(), self.user)
         self.soap.name = "Renamed soap"
-        self.soap.default_price = D("999")
+        set_price(self.soap, "999")
         self.soap.is_active = False  # archived
         self.soap.save()
         line = inv.lines.get(product=self.soap)
@@ -249,14 +249,18 @@ class CancellationAndCorrectionTests(InvoiceTestBase):
         with self.assertRaises(services.InvoiceStateError):
             services.cancel_invoice(self.draft(), self.user, "x")
 
-    def test_cancel_blocked_while_payments_exist(self):
-        inv = services.issue_invoice(self.draft(), self.user)
-        pay = Payment.objects.create(payer_name="Test School", amount=D("500"), method=PaymentMethod.objects.get(name="Cash"),
-                                     created_by=self.user)
+    def test_cancel_with_payments_moves_them_to_the_replacement(self):
+        inv = services.issue_invoice(self.draft(), self.user)          # total 2,000
+        pay = Payment.objects.create(payer_name="Test School", amount=D("500"), created_by=self.user,
+                                     method=PaymentMethod.objects.get(name="Cash"))
         PaymentAllocation.objects.create(payment=pay, invoice=inv, amount=D("500"))
-        with self.assertRaises(services.InvoiceStateError):
-            services.cancel_invoice(inv, self.user, "x")
-        self.assertEqual(self.stock(self.soap), D("90"))
+        inv = services.cancel_invoice(inv, self.user, "Wrong prices")
+        self.assertEqual(inv.released_payments, D("500"))
+        self.assertEqual((self.stock(self.soap), inv.get_amount_paid(), pay.get_unallocated()),
+                         (D("100"), D("0.00"), D("500.00")))
+        replacement = services.issue_invoice(services.create_replacement_draft(inv, self.user), self.user)
+        self.assertEqual((replacement.moved_payments, replacement.get_amount_paid()), (D("500"), D("500.00")))
+        self.assertEqual(pay.get_unallocated(), D("0.00"))
 
     def test_correction_cancel_and_reissue_nets_stock_correctly(self):
         original = services.issue_invoice(self.draft(), self.user)            # soap 100→90, liquid 10→8
@@ -264,10 +268,8 @@ class CancellationAndCorrectionTests(InvoiceTestBase):
         replacement = services.create_replacement_draft(original, self.user)
         self.assertEqual(replacement.replaces, original)
         self.assertEqual(replacement.lines.count(), 2)
-        line = replacement.lines.get(product=self.soap)
-        line.quantity = D("4")
-        line.save()
-        services.recalculate(replacement)
+        replacement.lines.get(product=self.soap).delete()
+        services.add_line(replacement, product=self.soap, quantity="4")
         services.issue_invoice(replacement, self.user)                        # soap 100→96, liquid 10→8
         self.assertEqual(self.stock(self.soap), D("96"))
         self.assertEqual(self.stock(self.liquid), D("8"))

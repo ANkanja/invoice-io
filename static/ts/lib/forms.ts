@@ -8,7 +8,9 @@ export function initSubmitGuards(): void {
   document.addEventListener("submit", (event) => {
     const form = event.target;
     if (!(form instanceof HTMLFormElement)) return;
-    if (form.method.toLowerCase() !== "post" || form.hasAttribute("data-allow-resubmit")) return;
+    // getAttribute, not form.method: a field named "method" would shadow that property.
+    const method = (form.getAttribute("method") ?? "get").toLowerCase();
+    if (method !== "post" || form.hasAttribute("data-allow-resubmit")) return;
     if (event.defaultPrevented) return;
 
     if (form.dataset.submitting === "true") {

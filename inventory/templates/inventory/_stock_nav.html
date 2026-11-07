@@ -1,0 +1,8 @@
+<nav class="subnav" aria-label="Stock sections">
+  <a class="{% if active == 'overview' %}active{% endif %}" href="{% url 'inventory:overview' %}" {% if active == 'overview' %}aria-current="page"{% endif %}>Stock levels</a>
+  <a class="{% if active == 'movements' %}active{% endif %}" href="{% url 'inventory:movements' %}" {% if active == 'movements' %}aria-current="page"{% endif %}>History</a>
+  {% if perms.inventory.add_stockmovement %}
+  <a class="{% if active == 'take' %}active{% endif %}" href="{% url 'inventory:take' %}" {% if active == 'take' %}aria-current="page"{% endif %}>Stock take</a>
+  <a class="{% if active == 'return' %}active{% endif %}" href="{% url 'inventory:return' %}" {% if active == 'return' %}aria-current="page"{% endif %}>Customer return</a>
+  {% endif %}
+</nav>

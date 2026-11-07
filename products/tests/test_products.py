@@ -5,33 +5,40 @@ from django.db import IntegrityError, transaction
 from django.db.models import ProtectedError
 from django.test import TestCase
 
-from core.testing import configure_business, make_customer, make_product, make_user
+from core.testing import configure_business, make_customer, make_option, make_product, make_user, set_price, unit
 from invoices import services
 from payments.models import Payment, PaymentMethod
-from products.models import Category, Product
+from products.models import Category, Product, SellingOption
 
 
 class ProductModelTests(TestCase):
-    def test_create_and_update(self):
+    def test_create_and_update_price(self):
         p = make_product("Floor Cleaner", "350.00", package_size="1 L", unit="bottle")
-        p.default_price = D("375.00")
-        p.save()
+        set_price(p, "375.00")
         p.refresh_from_db()
         self.assertEqual(p.default_price, D("375.00"))
-        self.assertEqual(str(p), "Floor Cleaner — 1 L")
+        self.assertEqual(str(p), "Floor Cleaner")
+        self.assertEqual(p.default_option.label, "1 L bottle")
 
     def test_negative_price_rejected(self):
-        p = Product(name="X", unit="piece", default_price=D("-1"))
+        p = make_product("X")
+        option = SellingOption(product=p, method="package", label="x", package_unit=p.stock_unit,
+                               content_quantity=D("1"), price=D("-1"))
         with self.assertRaises(ValidationError):
-            p.full_clean()
+            option.full_clean()
         with self.assertRaises(IntegrityError), transaction.atomic():
-            p.save()
+            option.save()
 
-    def test_duplicate_name_and_size_rejected_case_insensitive(self):
-        make_product("Bleach", package_size="1 L")
+    def test_only_one_default_option(self):
+        p = make_product("Bleach")
         with self.assertRaises(IntegrityError), transaction.atomic():
-            make_product("bleach", package_size="1 l")
-        make_product("Bleach", package_size="5 L")  # different size is fine
+            make_option(p, pack="carton", content="12", price="1000", default=True)
+
+    def test_measure_option_must_match_stock_dimension(self):
+        p = make_product("Detergent", stock_unit="g")
+        option = SellingOption(product=p, method="measure", label="per L", price_unit=unit("l"), price=D("100"))
+        with self.assertRaises(ValidationError):
+            option.full_clean()
 
     def test_blank_skus_allowed_many_times(self):
         make_product("A", sku="")

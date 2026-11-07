@@ -176,3 +176,15 @@ class AuditLog(AppendOnlyModel):
             changes=changes or {},
             reason=reason,
         )
+
+
+def form_changes(form, before: dict) -> dict:
+    """{field: [old, new]} for fields a ModelForm actually changed — for AuditLog."""
+    changes = {}
+    for name in form.changed_data:
+        if name not in before:
+            continue
+        old, new = before[name], getattr(form.instance, name, None)
+        if str(old) != str(new):
+            changes[name] = [str(old), str(new)]
+    return changes

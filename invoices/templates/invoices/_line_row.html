@@ -1,0 +1,58 @@
+{% comment %}One editable invoice line. Used for existing rows and for the blank row template.
+The "Sold as" and unit lists are filled in by invoice-editor.ts from the editor data;
+the server renders the saved choice so nothing is lost if the script is slow.{% endcomment %}
+<div class="line-row{% if form.errors %} has-errors{% endif %}" data-line>
+  <div class="line-cell line-product">
+    <label class="line-label" for="{{ form.product.auto_id }}">Product</label>
+    <select name="{{ form.product.html_name }}" id="{{ form.product.auto_id }}" class="form-select form-select-sm{% if form.product.errors %} is-invalid{% endif %}" data-line-product>
+      <option value="">Other item (type a description)</option>
+      {% for p in product_choices %}
+      <option value="{{ p.pk }}" {% if form.product.value|stringformat:"s" == p.pk|stringformat:"s" %}selected{% endif %}>{{ p }}{% if not p.is_active %} (archived){% endif %}</option>
+      {% endfor %}
+    </select>
+    <div class="line-option" data-option-wrap {% if not form.product.value %}hidden{% endif %}>
+      <label class="visually-hidden" for="{{ form.selling_option.auto_id }}">Sold as</label>
+      <select name="{{ form.selling_option.html_name }}" id="{{ form.selling_option.auto_id }}" class="form-select form-select-sm mt-1{% if form.selling_option.errors %} is-invalid{% endif %}" data-line-option data-initial="{{ form.selling_option.value|default_if_none:'' }}">
+        {% if form.selling_option.value %}<option value="{{ form.selling_option.value }}" selected></option>{% endif %}
+      </select>
+    </div>
+    <div class="line-hint" data-line-hint></div>
+  </div>
+  <div class="line-cell line-desc">
+    <label class="line-label" for="{{ form.description.auto_id }}">Description</label>
+    {{ form.description }}
+  </div>
+  <div class="line-cell line-qty">
+    <label class="line-label" for="{{ form.quantity.auto_id }}">Qty</label>
+    {{ form.quantity }}
+  </div>
+  <div class="line-cell line-unit">
+    <label class="line-label" for="{{ form.entered_unit.auto_id }}">Unit</label>
+    <select name="{{ form.entered_unit.html_name }}" id="{{ form.entered_unit.auto_id }}" class="form-select form-select-sm{% if form.entered_unit.errors %} is-invalid{% endif %}" data-line-unit data-initial="{{ form.entered_unit.value|default_if_none:'' }}" {% if not form.product.value %}hidden{% endif %}>
+      {% if form.entered_unit.value %}<option value="{{ form.entered_unit.value }}" selected>{{ form.entered_unit.value }}</option>{% endif %}
+    </select>
+    <input type="text" name="{{ form.free_unit.html_name }}" id="{{ form.free_unit.auto_id }}" value="{{ form.free_unit.value|default_if_none:'' }}" maxlength="30" placeholder="e.g. trip" class="form-control form-control-sm" data-line-free-unit aria-label="Unit" {% if form.product.value %}hidden{% endif %}>
+  </div>
+  <div class="line-cell line-price">
+    <label class="line-label" for="{{ form.unit_price.auto_id }}">Price</label>
+    {{ form.unit_price }}
+    <div class="line-per" data-line-per></div>
+  </div>
+  <div class="line-cell line-discount">
+    <label class="line-label" for="{{ form.line_discount.auto_id }}">Discount</label>
+    {{ form.line_discount }}
+  </div>
+  <div class="line-cell line-amount">
+    <span class="line-label">Amount</span>
+    <output class="num" data-line-amount>—</output>
+  </div>
+  <div class="line-cell line-remove">
+    <button type="button" class="btn btn-sm btn-link text-danger" data-remove-line aria-label="Remove this line" title="Remove line"><i class="bi bi-x-lg" aria-hidden="true"></i></button>
+  </div>
+  {% if form.errors %}
+  <div class="line-errors">
+    {% for field in form %}{% for e in field.errors %}<div><strong>{{ field.label }}:</strong> {{ e }}</div>{% endfor %}{% endfor %}
+    {% for e in form.non_field_errors %}<div>{{ e }}</div>{% endfor %}
+  </div>
+  {% endif %}
+</div>

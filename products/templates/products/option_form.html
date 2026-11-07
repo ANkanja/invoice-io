@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}{% if option %}Edit {{ option.label }}{% else %}Add a way to sell{% endif %}{% endblock %}
+{% block page_title %}{% if option %}Edit “{{ option.label }}”{% else %}Add a way to sell {{ product.name }}{% endif %}{% endblock %}
+{% block page_intro %}<p class="lead-text">Stock is counted in {{ product.stock_unit.plural }}. Changing a price here doesn't change invoices already made.</p>{% endblock %}
+{% block head %}<script type="module" src="{% static 'dist/product-form.js' %}"></script>{% endblock %}
+
+{% block content %}
+<form method="post" class="panel form-narrow-wide" novalidate data-product-form data-fixed-dimension="{{ product.stock_unit.dimension }}">
+  {% csrf_token %}
+  {% if form.non_field_errors %}<div class="alert alert-danger">{% for e in form.non_field_errors %}{{ e }}{% endfor %}</div>{% endif %}
+  {% include "products/_option_fields.html" with of=form %}
+  {% include "partials/_field.html" with field=form.is_default %}
+  {% include "partials/_field.html" with field=form.is_active %}
+  <div class="d-flex flex-wrap gap-2">
+    <button type="submit" class="btn btn-primary px-4" data-busy-text="Saving…">Save</button>
+    <a class="btn btn-link" href="{% url 'products:detail' product.pk %}">Cancel</a>
+  </div>
+</form>
+{{ units_data|json_script:"units-data" }}
+{% endblock %}

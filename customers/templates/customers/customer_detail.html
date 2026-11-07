@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% load formatting %}
+{% block title %}{{ customer }}{% endblock %}
+{% block page_title %}{{ customer.name }}{% endblock %}
+{% block page_intro %}<p class="lead-text">{% if customer.kind == "organization" %}Organisation{% else %}Individual{% endif %}{% if not customer.is_active %} <span class="badge text-bg-secondary align-middle">Archived</span>{% endif %}</p>{% endblock %}
+{% block page_actions %}
+  <a class="btn btn-outline-primary" href="{% url 'customers:list' %}">All customers</a>
+  {% if perms.customers.change_customer %}<a class="btn btn-outline-primary" href="{% url 'customers:edit' customer.pk %}"><i class="bi bi-pencil" aria-hidden="true"></i> Edit</a>{% endif %}
+  {% if perms.payments.add_payment and customer.is_active %}<a class="btn btn-outline-primary" href="{% url 'payments:create' %}?customer={{ customer.pk }}&next={{ request.path|urlencode }}"><i class="bi bi-cash-coin" aria-hidden="true"></i> Record payment</a>{% endif %}
+  {% if perms.invoices.add_invoice and customer.is_active %}<a class="btn btn-primary" href="{% url 'invoices:create' %}?customer={{ customer.pk }}"><i class="bi bi-plus-lg" aria-hidden="true"></i> New invoice</a>{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+  <div class="col-lg-4">
+    <section class="panel" aria-label="Contact details">
+      <dl class="detail-list">
+        {% if customer.contact_person %}<dt>Contact</dt><dd>{{ customer.contact_person }}</dd>{% endif %}
+        <dt>Phone</dt><dd>{% if customer.phone %}<a href="tel:{{ customer.phone|cut:' ' }}">{{ customer.phone }}</a>{% else %}—{% endif %}</dd>
+        <dt>Email</dt><dd>{% if customer.email %}<a href="mailto:{{ customer.email }}">{{ customer.email }}</a>{% else %}—{% endif %}</dd>
+        <dt>Address</dt><dd>{{ customer.billing_address|linebreaksbr|default:"—" }}</dd>
+        {% if customer.tax_pin %}<dt>KRA PIN</dt><dd>{{ customer.tax_pin }}</dd>{% endif %}
+        {% if customer.notes %}<dt>Notes</dt><dd>{{ customer.notes|linebreaksbr }}</dd>{% endif %}
+      </dl>
+    </section>
+    {% if perms.customers.change_customer %}
+    <section class="panel">
+      {% if customer.is_active %}
+      <form method="post" action="{% url 'customers:archive' customer.pk %}"
+            data-confirm="Archive {{ customer }}? Their invoices stay; they just won't be offered on new invoices." data-confirm-button="Archive customer">
+        {% csrf_token %}<button class="btn btn-outline-danger btn-sm" type="submit">Archive customer</button>
+      </form>
+      {% else %}
+      <form method="post" action="{% url 'customers:restore' customer.pk %}">{% csrf_token %}<button class="btn btn-outline-primary btn-sm" type="submit">Restore customer</button></form>
+      {% endif %}
+    </section>
+    {% endif %}
+  </div>
+
+  <div class="col-lg-8">
+    <section class="panel" aria-labelledby="balance-title">
+      <h2 id="balance-title" class="visually-hidden">Balance</h2>
+      <div class="figures">
+        <div><span class="figure-label">Owes you</span><span class="figure-value">{{ outstanding|money }}</span></div>
+        <div><span class="figure-label">Of which overdue</span><span class="figure-value {% if overdue > 0 %}text-danger{% endif %}">{{ overdue|money }}</span></div>
+        <div><span class="figure-label">Invoiced in total</span><span class="figure-value">{{ invoiced_total|money }}</span></div>
+        <div><span class="figure-label">Paid on invoices</span><span class="figure-value">{{ paid_total|money }}</span></div>
+        {% if credit > 0 %}<div><span class="figure-label">Unused credit</span><span class="figure-value text-success">{{ credit|money }}</span></div>{% endif %}
+      </div>
+    </section>
+
+    <section class="panel" aria-labelledby="invoices-title">
+      <h2 id="invoices-title">Invoices</h2>
+      {% if page.object_list %}
+      <div class="table-responsive">
+        <table class="table align-middle">
+          <thead><tr><th scope="col">Number</th><th scope="col">Date</th><th scope="col" class="num">Total</th><th scope="col" class="num">Balance</th><th scope="col">Status</th></tr></thead>
+          <tbody>
+            {% for inv in page.object_list %}
+            <tr>
+              <td class="text-nowrap"><a href="{% url 'invoices:detail' inv.pk %}">{{ inv.number }}</a></td>
+              <td class="text-nowrap">{{ inv.issue_date|date:"j M Y" }}</td>
+              <td class="num">{{ inv.total|money:inv.currency }}</td>
+              <td class="num">{% if inv.status == "issued" %}{{ inv.balance|money:inv.currency }}{% else %}—{% endif %}</td>
+              <td><span class="status status-{{ inv.payment_state }}">{{ inv.payment_state_display }}</span></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% include "partials/_pagination.html" %}
+      {% else %}
+      <div class="empty-state"><i class="bi bi-file-earmark-text" aria-hidden="true"></i><p>No invoices yet. Issued invoices for this customer will be listed here.</p></div>
+      {% endif %}
+    </section>
+
+    {% if perms.payments.view_payment %}
+    <section class="panel" aria-labelledby="payments-title">
+      <div class="d-flex flex-wrap justify-content-between align-items-baseline gap-2 mb-2">
+        <h2 id="payments-title" class="mb-0">Payments</h2>
+        {% if payment_count > payments|length %}<a class="small" href="{% url 'payments:list' %}?customer={{ customer.pk }}">All {{ payment_count }} payments</a>{% endif %}
+      </div>
+      {% if payments %}
+      <div class="table-responsive">
+        <table class="table align-middle">
+          <thead><tr><th scope="col">Date</th><th scope="col">Method</th><th scope="col" class="num">Amount</th><th scope="col" class="num d-none d-sm-table-cell">Credit left</th></tr></thead>
+          <tbody>
+            {% for p in payments %}
+            <tr class="{% if p.is_reversed %}is-reversed{% endif %}">
+              <td class="text-nowrap"><a href="{% url 'payments:detail' p.pk %}">{{ p.payment_date|date:"j M Y" }}</a>{% if p.is_reversed %} <span class="badge text-bg-secondary">Reversed</span>{% endif %}</td>
+              <td>{{ p.method }}{% if p.reference %}<div class="small text-secondary">{{ p.reference }}</div>{% endif %}</td>
+              <td class="num">{{ p.amount|money }}</td>
+              <td class="num d-none d-sm-table-cell">{% if not p.is_reversed and p.unallocated > 0 %}{{ p.unallocated|money }}{% else %}—{% endif %}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <p class="text-secondary mb-0">No payments recorded for {{ customer.name }} yet.</p>
+      {% endif %}
+    </section>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

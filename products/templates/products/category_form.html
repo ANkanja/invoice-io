@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}Rename category{% endblock %}
+{% block page_title %}Rename category{% endblock %}
+{% block content %}
+<form method="post" class="panel" novalidate style="max-width: 32rem">
+  {% csrf_token %}
+  {% if form.non_field_errors %}<div class="alert alert-danger" role="alert">{% for e in form.non_field_errors %}{{ e }}{% endfor %}</div>{% endif %}
+  {% include "partials/_field.html" with field=form.name %}
+  <div class="d-flex gap-2">
+    <button class="btn btn-primary" type="submit">Save name</button>
+    <a class="btn btn-link" href="{% url 'products:categories' %}">Cancel</a>
+  </div>
+</form>
+{% endblock %}

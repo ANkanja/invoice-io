@@ -18,7 +18,8 @@ class StockMovement(AppendOnlyModel):
         STOCK_OUT = "stock_out", "Stock out"         # damaged, expired, own use, samples
         ADJUSTMENT = "adjustment", "Count adjustment"  # physical count correction (±)
         SALE = "sale", "Sale (invoice issued)"
-        SALE_REVERSAL = "sale_reversal", "Sale reversed (invoice cancelled)"
+        SALE_REVERSAL = "sale_reversal", "Sale reversed (invoice cancelled or amended)"
+        RETURN = "return", "Customer return"
 
     class OutReason(models.TextChoices):
         DAMAGED = "damaged", "Damaged"
@@ -30,8 +31,12 @@ class StockMovement(AppendOnlyModel):
 
     product = models.ForeignKey("products.Product", on_delete=models.PROTECT, related_name="stock_movements")
     kind = models.CharField(max_length=20, choices=Kind.choices)
-    quantity = models.DecimalField(max_digits=12, decimal_places=2)
-    balance_after = models.DecimalField(max_digits=12, decimal_places=2)
+    # Always in the product's stock unit (ml, g, piece…).
+    quantity = models.DecimalField(max_digits=14, decimal_places=3)
+    balance_after = models.DecimalField(max_digits=14, decimal_places=3)
+    # What was typed, for the history screen, e.g. 4 × "5 L container" or 1.5 "L".
+    entered_quantity = models.DecimalField(max_digits=14, decimal_places=3, null=True, blank=True)
+    entered_unit = models.CharField(max_length=60, blank=True)
     out_reason = models.CharField(max_length=20, choices=OutReason.choices, blank=True)
     unit_cost = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
     reference = models.CharField(max_length=80, blank=True, help_text="Supplier invoice, batch number, etc.")
@@ -44,17 +49,20 @@ class StockMovement(AppendOnlyModel):
         "self", on_delete=models.PROTECT, null=True, blank=True, related_name="reversed_by"
     )
 
+    # Set for entries made through a form: a resubmitted form can't record twice.
+    submission_token = models.UUIDField(null=True, blank=True, unique=True, editable=False)
+
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="+")
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
 
     class Meta:
         ordering = ["-created_at", "-id"]
-        indexes = [models.Index(fields=["product", "created_at"])]
+        indexes = [models.Index(fields=["product", "created_at"]), models.Index(fields=["kind", "created_at"])]
         constraints = [
             models.CheckConstraint(condition=~Q(quantity=0), name="stock_movement_quantity_nonzero"),
             # Direction must match the kind.
             models.CheckConstraint(
-                condition=~Q(kind__in=["stock_in", "sale_reversal"]) | Q(quantity__gt=0),
+                condition=~Q(kind__in=["stock_in", "sale_reversal", "return"]) | Q(quantity__gt=0),
                 name="stock_movement_in_kinds_positive",
             ),
             models.CheckConstraint(

@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Customers{% endblock %}
+{% block page_title %}Customers{% endblock %}
+{% block page_actions %}
+  {% if perms.customers.add_customer %}<a class="btn btn-primary" href="{% url 'customers:create' %}"><i class="bi bi-plus-lg" aria-hidden="true"></i> Add customer</a>{% endif %}
+{% endblock %}
+
+{% block content %}
+{% if not has_any %}
+<div class="panel empty-state">
+  <i class="bi bi-people" aria-hidden="true"></i>
+  <p class="mb-3">No customers yet. Save the people and organisations you supply regularly; one-off buyers can be typed straight onto an invoice.</p>
+  {% if perms.customers.add_customer %}<a class="btn btn-primary" href="{% url 'customers:create' %}">Add your first customer</a>{% endif %}
+</div>
+{% else %}
+<form method="get" class="filter-bar" role="search">
+  <div class="filter-search"><label class="visually-hidden" for="{{ filter_form.q.id_for_label }}">Search customers</label>{{ filter_form.q }}</div>
+  <div><label class="visually-hidden" for="{{ filter_form.kind.id_for_label }}">Type</label>{{ filter_form.kind }}</div>
+  <div><label class="visually-hidden" for="{{ filter_form.status.id_for_label }}">Status</label>{{ filter_form.status }}</div>
+  <div class="d-flex gap-2">
+    <button class="btn btn-outline-primary" type="submit">Search</button>
+    {% if filtered %}<a class="btn btn-link px-1" href="{% url 'customers:list' %}">Clear</a>{% endif %}
+  </div>
+</form>
+
+<div class="panel p-0">
+  {% if page.object_list %}
+  <div class="table-responsive">
+    <table class="table align-middle table-hover mb-0 list-table">
+      <thead><tr><th scope="col">Name</th><th scope="col">Phone</th><th scope="col" class="d-none d-md-table-cell">Email</th></tr></thead>
+      <tbody>
+        {% for c in page.object_list %}
+        <tr>
+          <td>
+            <a class="row-link fw-medium" href="{% url 'customers:detail' c.pk %}">{{ c.name }}</a>
+            <div class="small text-secondary">{% if c.kind == "organization" %}Organisation{% if c.contact_person %}, contact {{ c.contact_person }}{% endif %}{% else %}Individual{% endif %}{% if not c.is_active %} <span class="badge text-bg-secondary">Archived</span>{% endif %}</div>
+          </td>
+          <td class="text-nowrap">{% if c.phone %}<a href="tel:{{ c.phone|cut:' ' }}">{{ c.phone }}</a>{% else %}—{% endif %}</td>
+          <td class="d-none d-md-table-cell">{{ c.email|default:"—" }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state"><i class="bi bi-search" aria-hidden="true"></i><p>No customers match. <a href="{% url 'customers:list' %}">Show all active customers</a></p></div>
+  {% endif %}
+</div>
+{% include "partials/_pagination.html" %}
+{% endif %}
+{% endblock %}

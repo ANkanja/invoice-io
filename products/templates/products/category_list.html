@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}Categories{% endblock %}
+{% block page_title %}Categories{% endblock %}
+{% block page_intro %}<p class="lead-text">Group products, e.g. liquid soaps, bar soaps, detergents. Used for filtering.</p>{% endblock %}
+{% block page_actions %}<a class="btn btn-outline-primary" href="{% url 'products:list' %}">All products</a>{% endblock %}
+
+{% block content %}
+{% if perms.products.add_category %}
+<form method="post" class="panel" novalidate>
+  {% csrf_token %}
+  {% if form.non_field_errors %}<div class="alert alert-danger" role="alert">{% for e in form.non_field_errors %}{{ e }}{% endfor %}</div>{% endif %}
+  <div class="row g-2 align-items-start">
+    <div class="col-sm">{% include "partials/_field.html" with field=form.name %}</div>
+    <div class="col-sm-auto pt-sm-4"><button class="btn btn-primary mt-sm-2" type="submit">Add category</button></div>
+  </div>
+</form>
+{% endif %}
+
+<div class="panel p-0">
+  {% if categories %}
+  <div class="table-responsive">
+    <table class="table align-middle mb-0 list-table">
+      <thead><tr><th scope="col">Name</th><th scope="col" class="num">Active products</th><th scope="col"><span class="visually-hidden">Actions</span></th></tr></thead>
+      <tbody>
+        {% for c in categories %}
+        <tr>
+          <td><a href="{% url 'products:list' %}?category={{ c.pk }}">{{ c.name }}</a>{% if not c.is_active %} <span class="badge text-bg-secondary">Archived</span>{% endif %}</td>
+          <td class="num">{{ c.product_count }}</td>
+          <td class="text-end text-nowrap">
+            {% if perms.products.change_category %}
+            <a class="btn btn-sm btn-link" href="{% url 'products:category_edit' c.pk %}">Rename</a>
+            {% if c.is_active %}
+            <form class="d-inline" method="post" action="{% url 'products:category_archive' c.pk %}"
+                  data-confirm="Archive the category {{ c.name }}? Its products keep it, but it won't be offered for new products." data-confirm-button="Archive">
+              {% csrf_token %}<button class="btn btn-sm btn-link text-danger" type="submit">Archive</button>
+            </form>
+            {% else %}
+            <form class="d-inline" method="post" action="{% url 'products:category_restore' c.pk %}">
+              {% csrf_token %}<button class="btn btn-sm btn-link" type="submit">Restore</button>
+            </form>
+            {% endif %}
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state"><i class="bi bi-tags" aria-hidden="true"></i><p>No categories yet. Categories are optional.</p></div>
+  {% endif %}
+</div>
+{% endblock %}

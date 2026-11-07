@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% load formatting stock %}
+{% block title %}Stock history{% endblock %}
+{% block page_title %}Stock{% endblock %}
+
+{% block content %}
+{% include "inventory/_stock_nav.html" with active="movements" %}
+
+<form method="get" class="filter-bar">
+  <div class="filter-search"><label class="visually-hidden" for="{{ filter_form.product.id_for_label }}">Product</label>{{ filter_form.product }}</div>
+  <div><label class="visually-hidden" for="{{ filter_form.kind.id_for_label }}">Type</label>{{ filter_form.kind }}</div>
+  <div class="d-flex align-items-center gap-1"><label class="small text-secondary" for="{{ filter_form.date_from.id_for_label }}">From</label>{{ filter_form.date_from }}</div>
+  <div class="d-flex align-items-center gap-1"><label class="small text-secondary" for="{{ filter_form.date_to.id_for_label }}">To</label>{{ filter_form.date_to }}</div>
+  <div class="d-flex gap-2">
+    <button class="btn btn-outline-primary" type="submit">Show</button>
+    {% if filtered %}<a class="btn btn-link px-1" href="{% url 'inventory:movements' %}">Clear</a>{% endif %}
+  </div>
+</form>
+
+<div class="panel p-0">
+  {% if page.object_list %}
+  <div class="table-responsive">
+    <table class="table align-middle mb-0 list-table">
+      <thead><tr>
+        <th scope="col">When</th><th scope="col">Product</th><th scope="col">What</th>
+        <th scope="col" class="num">Change</th><th scope="col" class="num">Balance</th><th scope="col" class="d-none d-lg-table-cell">By</th>
+      </tr></thead>
+      <tbody>
+        {% for m in page.object_list %}
+        <tr>
+          <td class="text-nowrap">{{ m.created_at|date:"j M Y" }}<div class="small text-secondary">{{ m.created_at|time:"H:i" }}</div></td>
+          <td><a href="{% url 'products:detail' m.product_id %}">{{ m.product }}</a></td>
+          <td>{% include "inventory/_movement_label.html" %}{% if m.notes %}<div class="small text-secondary">{{ m.notes }}</div>{% endif %}</td>
+          <td class="num text-nowrap {% if m.quantity < 0 %}text-danger{% else %}text-success{% endif %}">{% stock_amount m.quantity m.product signed=True %}{% if m.entered_unit %}<div class="small text-secondary">{{ m.entered_quantity|qty }} {{ m.entered_unit }}</div>{% endif %}</td>
+          <td class="num text-nowrap">{% stock_amount m.balance_after m.product %}</td>
+          <td class="d-none d-lg-table-cell">{{ m.created_by }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state"><i class="bi bi-clock-history" aria-hidden="true"></i><p>{% if filtered %}No movements match these filters.{% else %}No stock movements yet. Stock in, stock out, counts and sales will be listed here.{% endif %}</p></div>
+  {% endif %}
+</div>
+{% include "partials/_pagination.html" %}
+{% endblock %}

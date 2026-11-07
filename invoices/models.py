@@ -45,7 +45,7 @@ class InvoiceQuerySet(models.QuerySet):
         """Annotate amount_paid (non-reversed allocations) and balance."""
         Allocation = apps.get_model("payments", "PaymentAllocation")
         paid_sq = (
-            Allocation.objects.filter(invoice=OuterRef("pk"), payment__is_reversed=False)
+            Allocation.objects.filter(invoice=OuterRef("pk"), payment__is_reversed=False, released_at__isnull=True)
             .values("invoice")
             .annotate(s=Sum("amount"))
             .values("s")
@@ -57,6 +57,15 @@ class InvoiceQuerySet(models.QuerySet):
 
     def issued(self):
         return self.filter(status=Invoice.Status.ISSUED)
+
+    def money_totals(self) -> dict:
+        """{'count', 'total', 'paid', 'balance'} for these invoices (expects
+        with_payment_totals()). Each sum is its own query: summing the computed
+        balance directly gave wrong results on SQLite."""
+        zero = Decimal("0.00")
+        total = self.aggregate(s=Sum("total"))["s"] or zero
+        paid = self.aggregate(s=Sum("amount_paid"))["s"] or zero
+        return {"count": self.count(), "total": total, "paid": paid, "balance": total - paid}
 
     def outstanding(self):
         return self.issued().with_payment_totals().filter(balance__gt=0)
@@ -134,10 +143,23 @@ class Invoice(TimeStampedModel):
     )
     cancel_reason = models.TextField(blank=True)
 
+    # Amendments: issued invoices can be corrected; each correction archives the
+    # previous version as an InvoiceRevision and bumps this number.
+    revision = models.PositiveSmallIntegerField(default=1)
+    last_amended_at = models.DateTimeField(null=True, blank=True)
+    last_amended_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.PROTECT, null=True, blank=True, related_name="+"
+    )
+
     objects = InvoiceQuerySet.as_manager()
 
     class Meta:
         ordering = ["-issue_date", "-id"]
+        permissions = [
+            ("issue_invoice", "Can issue invoices"),
+            ("cancel_invoice", "Can cancel issued invoices"),
+            ("amend_invoice", "Can amend issued invoices"),
+        ]
         indexes = [
             models.Index(fields=["status", "issue_date"]),
             models.Index(fields=["customer", "issue_date"]),
@@ -168,7 +190,8 @@ class Invoice(TimeStampedModel):
 
     # --- integrity guards -------------------------------------------------
     def save(self, *args, **kwargs):
-        if not self._state.adding and self.pk:
+        # invoices.services.amend_invoice sets _amending after archiving the old version.
+        if not self._state.adding and self.pk and not getattr(self, "_amending", False):
             attnames = [f.attname for f in self._meta.concrete_fields]
             old = type(self).objects.filter(pk=self.pk).values(*attnames).first()
             if old and old["status"] != self.Status.DRAFT:
@@ -204,7 +227,8 @@ class Invoice(TimeStampedModel):
         if hasattr(self, "amount_paid"):
             return self.amount_paid
         Allocation = apps.get_model("payments", "PaymentAllocation")
-        total = Allocation.objects.filter(invoice=self, payment__is_reversed=False).aggregate(s=Sum("amount"))["s"]
+        total = Allocation.objects.filter(invoice=self, payment__is_reversed=False,
+                                          released_at__isnull=True).aggregate(s=Sum("amount"))["s"]
         return quantize(total or ZERO)
 
     def get_balance(self) -> Decimal:
@@ -225,6 +249,19 @@ class Invoice(TimeStampedModel):
             return PaymentState.PARTIAL
         return PaymentState.UNPAID
 
+    @property
+    def payment_state_display(self) -> str:
+        return PaymentState(self.payment_state()).label
+
+
+class CurrentLineManager(models.Manager):
+    """invoice.lines and InvoiceLine.objects show only the invoice's current
+    version; lines superseded by an amendment stay in the database (their stock
+    history points at them) and are reachable via InvoiceLine.all_objects."""
+
+    def get_queryset(self):
+        return super().get_queryset().filter(is_current=True)
+
 
 class InvoiceLine(models.Model):
     """One row on an invoice. Description, unit and prices are copies taken
@@ -235,9 +272,21 @@ class InvoiceLine(models.Model):
     product = models.ForeignKey(
         "products.Product", on_delete=models.PROTECT, null=True, blank=True, related_name="invoice_lines"
     )
+    selling_option = models.ForeignKey(
+        "products.SellingOption", on_delete=models.PROTECT, null=True, blank=True, related_name="invoice_lines"
+    )
     description = models.CharField(max_length=255)
+    # --- snapshot of how the line was measured and priced (never recomputed from the product) ---
+    # quantity (below) and unit are what was entered: 1500 + "ml", or 5 + "bottle".
     unit = models.CharField(max_length=30, blank=True)
-    package_size = models.CharField(max_length=40, blank=True)
+    unit_plural = models.CharField(max_length=30, blank=True)
+    package_size = models.CharField("selling option", max_length=60, blank=True)  # e.g. "500 ml bottle"
+    pricing_method = models.CharField(max_length=10, blank=True)  # package / measure / "" (free text)
+    price_unit = models.CharField(max_length=30, blank=True)  # the price is per this: "L", "bottle"
+    conversion_factor = models.DecimalField(max_digits=18, decimal_places=9, default=Decimal("1"))
+    price_quantity = models.DecimalField(max_digits=18, decimal_places=6, default=Decimal("0"))  # in price units
+    base_quantity = models.DecimalField(max_digits=14, decimal_places=3, null=True, blank=True)  # stock units
+    base_unit = models.CharField(max_length=20, blank=True)
     catalogue_price = models.DecimalField(
         **MONEY, null=True, blank=True, help_text="Product's default price when the line was added."
     )
@@ -245,9 +294,14 @@ class InvoiceLine(models.Model):
     unit_price = models.DecimalField(**MONEY, validators=NON_NEGATIVE)
     line_discount = models.DecimalField(**MONEY, default=Decimal("0.00"), validators=NON_NEGATIVE)
     line_total = models.DecimalField(**MONEY, default=Decimal("0.00"))
+    is_current = models.BooleanField(default=True, db_index=True)
+
+    objects = CurrentLineManager()
+    all_objects = models.Manager()
 
     class Meta:
         ordering = ["position", "id"]
+        base_manager_name = "all_objects"
         constraints = [
             models.CheckConstraint(condition=Q(quantity__gt=0), name="invoice_line_quantity_gt_0"),
             models.CheckConstraint(condition=Q(unit_price__gte=0), name="invoice_line_unit_price_gte_0"),
@@ -262,7 +316,9 @@ class InvoiceLine(models.Model):
         return Invoice.objects.filter(pk=self.invoice_id, status=Invoice.Status.DRAFT).exists()
 
     def save(self, *args, **kwargs):
-        if not self._parent_is_draft():
+        # New lines may be added to an issued invoice only by amend_invoice (sets _amending).
+        allowed = self._state.adding and getattr(self, "_amending", False)
+        if not allowed and not self._parent_is_draft():
             raise ImmutableRecordError("Lines can only be changed while the invoice is a draft.")
         super().save(*args, **kwargs)
 
@@ -272,5 +328,80 @@ class InvoiceLine(models.Model):
         return super().delete(*args, **kwargs)
 
     @property
+    def quantity_display(self) -> str:
+        """'1,500 ml', '5 bottles', '1 bottle', '2 litres'."""
+        from core.money import format_quantity
+
+        qty = format_quantity(self.quantity)
+        if self.pricing_method == "package" and self.unit:
+            label = self.unit if self.quantity == 1 else (self.unit_plural or self.unit)
+            return f"{qty} {label}"
+        return f"{qty} {self.unit}".strip()
+
+    @property
+    def price_display_unit(self) -> str:
+        """'per L', 'per bottle', or '' for plain lines."""
+        return f"per {self.price_unit}" if self.price_unit else ""
+
+    @property
     def is_price_overridden(self) -> bool:
         return self.catalogue_price is not None and self.unit_price != self.catalogue_price
+
+
+class InvoiceRevision(models.Model):
+    """A previous version of an issued invoice, archived when it was amended.
+    Append-only: the snapshot holds the full header, lines and totals."""
+
+    invoice = models.ForeignKey(Invoice, on_delete=models.PROTECT, related_name="revisions")
+    revision_no = models.PositiveSmallIntegerField()
+    snapshot = models.JSONField()
+    reason = models.TextField()
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="+")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-revision_no"]
+        constraints = [models.UniqueConstraint(fields=["invoice", "revision_no"], name="invoice_revision_unique")]
+
+    def __str__(self):
+        return f"{self.invoice.number} revision {self.revision_no}"
+
+    def as_invoice(self):
+        """(Invoice, [InvoiceLine]) rebuilt from the snapshot, unsaved, for
+        showing or printing this earlier version."""
+        import datetime
+
+        data = dict(self.snapshot)
+        line_data = data.pop("lines", [])
+        fields = {f.attname: f for f in Invoice._meta.concrete_fields}
+        values = {}
+        for key, value in data.items():
+            field = fields.get(key)
+            if field is None or value is None:
+                continue
+            if isinstance(field, models.DecimalField):
+                value = Decimal(value)
+            elif isinstance(field, models.DateField) and not isinstance(field, models.DateTimeField):
+                value = datetime.date.fromisoformat(value)
+            values[key] = value
+        invoice = Invoice(pk=self.invoice_id, **values)
+        invoice.revision = self.revision_no
+        line_fields = {f.attname: f for f in InvoiceLine._meta.concrete_fields}
+        lines = []
+        for row in line_data:
+            kwargs = {}
+            for key, value in row.items():
+                field = line_fields.get(key)
+                if field is None or value is None:
+                    continue
+                kwargs[key] = Decimal(value) if isinstance(field, models.DecimalField) else value
+            lines.append(InvoiceLine(invoice=invoice, **kwargs))
+        return invoice, lines
+
+    def save(self, *args, **kwargs):
+        if not self._state.adding:
+            raise ImmutableRecordError("Invoice revisions cannot be edited.")
+        super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        raise ImmutableRecordError("Invoice revisions cannot be deleted.")

@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% load formatting %}
+{% block title %}Payments{% endblock %}
+{% block page_title %}Payments{% endblock %}
+{% block page_actions %}
+  {% if perms.payments.add_payment %}<a class="btn btn-primary" href="{% url 'payments:create' %}"><i class="bi bi-plus-lg" aria-hidden="true"></i> Record payment</a>{% endif %}
+{% endblock %}
+
+{% block content %}
+{% if not has_any %}
+<div class="panel empty-state">
+  <i class="bi bi-cash-coin" aria-hidden="true"></i>
+  <p class="mb-3">No payments recorded yet. Record money as it comes in, from here or from an invoice's page.</p>
+  {% if perms.payments.add_payment %}<a class="btn btn-primary" href="{% url 'payments:create' %}">Record a payment</a>{% endif %}
+</div>
+{% else %}
+<form method="get" class="filter-bar" role="search">
+  <div class="filter-search"><label class="visually-hidden" for="{{ filter_form.q.id_for_label }}">Search</label>{{ filter_form.q }}</div>
+  <div><label class="visually-hidden" for="{{ filter_form.state.id_for_label }}">Show</label>{{ filter_form.state }}</div>
+  <div><label class="visually-hidden" for="{{ filter_form.method.id_for_label }}">Method</label>{{ filter_form.method }}</div>
+  <div><label class="visually-hidden" for="{{ filter_form.customer.id_for_label }}">Customer</label>{{ filter_form.customer }}</div>
+  <div class="d-flex align-items-center gap-1"><label class="small text-secondary" for="{{ filter_form.date_from.id_for_label }}">From</label>{{ filter_form.date_from }}</div>
+  <div class="d-flex align-items-center gap-1"><label class="small text-secondary" for="{{ filter_form.date_to.id_for_label }}">To</label>{{ filter_form.date_to }}</div>
+  <div class="d-flex gap-2">
+    <button class="btn btn-outline-primary" type="submit">Search</button>
+    {% if filtered %}<a class="btn btn-link px-1" href="{% url 'payments:list' %}">Clear</a>{% endif %}
+  </div>
+</form>
+
+<div class="panel p-0">
+  {% if page.object_list %}
+  <div class="table-responsive">
+    <table class="table align-middle table-hover mb-0 list-table">
+      <thead><tr>
+        <th scope="col">Date</th><th scope="col">Paid by</th><th scope="col" class="d-none d-md-table-cell">Method</th>
+        <th scope="col" class="num">Amount</th><th scope="col" class="num d-none d-sm-table-cell">Credit left</th>
+      </tr></thead>
+      <tbody>
+        {% for p in page.object_list %}
+        <tr class="{% if p.is_reversed %}is-reversed{% endif %}">
+          <td class="text-nowrap"><a class="row-link fw-medium" href="{% url 'payments:detail' p.pk %}">{{ p.payment_date|date:"j M Y" }}</a></td>
+          <td>{{ p.payer_name }}{% if p.is_reversed %} <span class="badge text-bg-secondary">Reversed</span>{% endif %}
+            <div class="small text-secondary d-md-none">{{ p.method }}{% if p.reference %} · {{ p.reference }}{% endif %}</div></td>
+          <td class="d-none d-md-table-cell">{{ p.method }}{% if p.reference %}<div class="small text-secondary">{{ p.reference }}</div>{% endif %}</td>
+          <td class="num">{% if p.is_reversed %}<s>{{ p.amount|money }}</s>{% else %}{{ p.amount|money }}{% endif %}</td>
+          <td class="num d-none d-sm-table-cell">{% if not p.is_reversed and p.unallocated > 0 %}{{ p.unallocated|money }}{% else %}—{% endif %}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+      <tfoot>
+        <tr class="list-totals">
+          <th scope="row" colspan="3" class="d-none d-md-table-cell">Received (not counting reversed)</th>
+          <th scope="row" colspan="2" class="d-md-none">Received</th>
+          <td class="num">{{ received|money }}</td>
+          <td class="d-none d-sm-table-cell"></td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state"><i class="bi bi-search" aria-hidden="true"></i><p>No payments match. <a href="{% url 'payments:list' %}">Show all</a></p></div>
+  {% endif %}
+</div>
+{% include "partials/_pagination.html" %}
+{% endif %}
+{% endblock %}

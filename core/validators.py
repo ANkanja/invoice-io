@@ -9,6 +9,7 @@ from django.core.validators import RegexValidator
 from PIL import Image, UnidentifiedImageError
 
 ALLOWED_IMAGE_FORMATS = {"PNG": "png", "JPEG": "jpg", "WEBP": "webp"}
+ALLOWED_EXTENSIONS = set(ALLOWED_IMAGE_FORMATS.values())
 
 phone_validator = RegexValidator(
     regex=r"^\+?[0-9 ()\-]{7,20}$",
@@ -30,7 +31,7 @@ def validate_image_upload(file) -> None:
         with Image.open(file) as img:
             fmt = img.format
             img.verify()
-    except (UnidentifiedImageError, OSError, SyntaxError, ValueError):
+    except (UnidentifiedImageError, Image.DecompressionBombError, OSError, SyntaxError, ValueError):
         raise ValidationError("Upload a valid PNG, JPEG or WebP image.")
     finally:
         try:
@@ -45,7 +46,7 @@ def _random_name(folder: str, original_name: str) -> str:
     ext = Path(original_name).suffix.lower().lstrip(".")
     if ext == "jpeg":
         ext = "jpg"
-    if ext not in set(ALLOWED_IMAGE_FORMATS.values()):
+    if ext not in ALLOWED_EXTENSIONS:
         ext = "img"
     return f"{folder}/{uuid.uuid4().hex}.{ext}"
 
@@ -56,3 +57,7 @@ def logo_upload_path(instance, filename: str) -> str:
 
 def product_photo_path(instance, filename: str) -> str:
     return _random_name("products", filename)
+
+
+def product_thumb_path(instance, filename: str) -> str:
+    return _random_name("products/thumbs", filename)

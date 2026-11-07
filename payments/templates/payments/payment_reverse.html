@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% load formatting %}
+{% block title %}Reverse payment{% endblock %}
+{% block page_title %}Reverse payment of {{ payment.amount|money }}{% endblock %}
+{% block page_intro %}<p class="lead-text">From {{ payment.payer_name }}, {{ payment.payment_date|date:"j M Y" }}, {{ payment.method }}{% if payment.reference %} {{ payment.reference }}{% endif %}.</p>{% endblock %}
+
+{% block content %}
+<form method="post" class="panel form-narrow" novalidate>
+  {% csrf_token %}
+  {% if form.non_field_errors %}<div class="alert alert-danger">{% for e in form.non_field_errors %}{{ e }}{% endfor %}</div>{% endif %}
+  <p>Reversing keeps the payment on record, marked <strong>Reversed</strong>, but it stops counting as paid. Use it for a payment entered by mistake, a bounced cheque or a refund. It can't be undone; record the payment again if needed.</p>
+  {% if allocations %}
+  <p>These invoices will show the money as owed again:</p>
+  <ul>{% for a in allocations %}<li>{{ a.invoice.number }}: {{ a.amount|money:a.invoice.currency }}</li>{% endfor %}</ul>
+  {% endif %}
+  {% include "partials/_field.html" with field=form.reason %}
+  <div class="d-flex flex-wrap gap-2">
+    <button class="btn btn-danger" type="submit" data-busy-text="Reversing…">Reverse payment</button>
+    <a class="btn btn-link" href="{% url 'payments:detail' payment.pk %}">Go back</a>
+  </div>
+</form>
+{% endblock %}

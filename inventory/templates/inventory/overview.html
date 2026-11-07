@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% load formatting %}
+{% block title %}Stock{% endblock %}
+{% block page_title %}Stock{% endblock %}
+{% block page_actions %}
+  {% if perms.inventory.add_stockmovement %}
+  <a class="btn btn-outline-primary" href="{% url 'inventory:stock_out' %}">Stock out</a>
+  <a class="btn btn-primary" href="{% url 'inventory:stock_in' %}"><i class="bi bi-box-arrow-in-down" aria-hidden="true"></i> Stock in</a>
+  {% endif %}
+{% endblock %}
+
+{% block content %}
+{% include "inventory/_stock_nav.html" with active="overview" %}
+
+{% if not tracked_count %}
+<div class="panel empty-state">
+  <i class="bi bi-box-seam" aria-hidden="true"></i>
+  <p class="mb-3">No stock-tracked products yet. Add products with “Track stock” ticked, then record what you have.</p>
+  {% if perms.products.add_product %}<a class="btn btn-primary" href="{% url 'products:create' %}">Add a product</a>{% endif %}
+</div>
+{% else %}
+<p class="stock-summary">
+  {{ tracked_count }} product{{ tracked_count|pluralize }} tracked.
+  {% if low_count %}<a href="?level=low"><span class="badge badge-low">{{ low_count }} low</span></a>{% endif %}
+  {% if out_count %}<a href="?level=out"><span class="badge badge-out">{{ out_count }} out of stock</span></a>{% endif %}
+  {% if not low_count and not out_count %}None are low.{% endif %}
+</p>
+
+<form method="get" class="filter-bar" role="search">
+  <div class="filter-search"><label class="visually-hidden" for="{{ filter_form.q.id_for_label }}">Search</label>{{ filter_form.q }}</div>
+  <div><label class="visually-hidden" for="{{ filter_form.category.id_for_label }}">Category</label>{{ filter_form.category }}</div>
+  <div><label class="visually-hidden" for="{{ filter_form.level.id_for_label }}">Stock level</label>{{ filter_form.level }}</div>
+  <div class="d-flex gap-2">
+    <button class="btn btn-outline-primary" type="submit">Search</button>
+    {% if filtered %}<a class="btn btn-link px-1" href="{% url 'inventory:overview' %}">Clear</a>{% endif %}
+  </div>
+</form>
+
+<div class="panel p-0">
+  {% if page.object_list %}
+  <div class="table-responsive">
+    <table class="table align-middle table-hover mb-0 list-table">
+      <thead><tr>
+        <th scope="col">Product</th>
+        <th scope="col" class="d-none d-md-table-cell">Category</th>
+        <th scope="col" class="num">In stock</th>
+        <th scope="col" class="num d-none d-sm-table-cell">Alert at</th>
+        {% if perms.inventory.add_stockmovement %}<th scope="col" class="text-end"><span class="visually-hidden">Actions</span></th>{% endif %}
+      </tr></thead>
+      <tbody>
+        {% for product in page.object_list %}
+        <tr>
+          <td><a class="row-link fw-medium" href="{% url 'products:detail' product.pk %}">{{ product.name }}</a>
+              <div class="small text-secondary">{{ product.options_summary|default:"No selling options yet" }}</div></td>
+          <td class="d-none d-md-table-cell">{{ product.category|default:"—" }}</td>
+          <td class="num">{% include "products/_stock_badge.html" %}</td>
+          <td class="num d-none d-sm-table-cell">{{ product.threshold_display|default:"—" }}</td>
+          {% if perms.inventory.add_stockmovement %}
+          <td class="text-end text-nowrap row-actions">
+            <a class="btn btn-sm btn-outline-primary" href="{% url 'inventory:stock_in' %}?product={{ product.pk }}" aria-label="Stock in: {{ product }}" title="Stock in"><i class="bi bi-plus-lg" aria-hidden="true"></i></a>
+            <a class="btn btn-sm btn-outline-primary" href="{% url 'inventory:stock_out' %}?product={{ product.pk }}" aria-label="Stock out: {{ product }}" title="Stock out"><i class="bi bi-dash-lg" aria-hidden="true"></i></a>
+            <a class="btn btn-sm btn-outline-primary d-none d-sm-inline-block" href="{% url 'inventory:count' %}?product={{ product.pk }}" aria-label="Count: {{ product }}" title="Count"><i class="bi bi-clipboard-check" aria-hidden="true"></i></a>
+          </td>
+          {% endif %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state"><i class="bi bi-search" aria-hidden="true"></i><p>Nothing matches. <a href="{% url 'inventory:overview' %}">Show all</a></p></div>
+  {% endif %}
+</div>
+{% include "partials/_pagination.html" %}
+{% endif %}
+{% endblock %}

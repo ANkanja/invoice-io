@@ -1,0 +1,1 @@
+{% if not product.track_stock %}<span class="text-secondary small">Not tracked</span>{% else %}<span class="{% if product.stock_qty <= 0 %}text-danger fw-semibold{% endif %}">{{ product.stock_display }}</span>{% if product.stock_qty <= 0 %} <span class="badge badge-out">Out</span>{% elif product.is_low_stock %} <span class="badge badge-low">Low</span>{% endif %}{% endif %}

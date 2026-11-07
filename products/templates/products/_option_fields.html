@@ -1,0 +1,23 @@
+{% comment %}"How is it sold?" fields. Expects `of` (a SellingOptionFields form).{% endcomment %}
+<fieldset class="mb-3">
+  <legend class="form-label fs-6">How is it sold?</legend>
+  {% for choice in of.method %}
+  <div class="form-check">
+    {{ choice.tag }}<label class="form-check-label" for="{{ choice.id_for_label }}">{{ choice.choice_label }}</label>
+  </div>
+  {% endfor %}
+  <div class="form-text">A <strong>pack</strong> has its own price (a 500 ml bottle at KES 140) and is never pro-rated. A <strong>measured</strong> price is per litre or kilo, and you can type ml or L, g or kg on invoices.</div>
+</fieldset>
+<div class="row g-x-4" data-method-fields="package">
+  <div class="col-md-4">{% include "partials/_field.html" with field=of.package_unit %}</div>
+  <div class="col-7 col-md-4">{% include "partials/_field.html" with field=of.content_quantity %}</div>
+  <div class="col-5 col-md-4">{% include "partials/_field.html" with field=of.content_unit %}</div>
+</div>
+<div class="row g-x-4" data-method-fields="measure">
+  <div class="col-md-4">{% include "partials/_field.html" with field=of.price_unit %}</div>
+</div>
+<div class="row g-x-4">
+  <div class="col-md-4">{% include "partials/_field.html" with field=of.price %}</div>
+  <div class="col-md-4">{% include "partials/_field.html" with field=of.cost_price %}</div>
+  <div class="col-md-4">{% include "partials/_field.html" with field=of.label %}</div>
+</div>

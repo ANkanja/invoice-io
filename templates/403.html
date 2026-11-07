@@ -1,0 +1,6 @@
+{% extends "base.html" %}
+{% block title %}Not allowed{% endblock %}
+{% block page_title %}You can't open this page{% endblock %}
+{% block content %}
+<div class="panel"><p class="mb-2">Your account doesn't have permission for this. Ask the account owner to give you access.</p><a href="{% url 'core:dashboard' %}">Go to the dashboard</a></div>
+{% endblock %}

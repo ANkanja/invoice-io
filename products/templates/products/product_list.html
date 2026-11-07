@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% load formatting %}
+{% block title %}Products{% endblock %}
+{% block page_title %}Products{% endblock %}
+{% block page_actions %}
+  {% if perms.products.view_category %}<a class="btn btn-outline-primary" href="{% url 'products:categories' %}">Categories</a>{% endif %}
+  {% if perms.products.add_product %}<a class="btn btn-primary" href="{% url 'products:create' %}"><i class="bi bi-plus-lg" aria-hidden="true"></i> Add product</a>{% endif %}
+{% endblock %}
+
+{% block content %}
+{% if not has_any %}
+<div class="panel empty-state">
+  <i class="bi bi-droplet" aria-hidden="true"></i>
+  <p class="mb-3">No products yet. Add each item you sell, one per size, with its selling price.</p>
+  {% if perms.products.add_product %}<a class="btn btn-primary" href="{% url 'products:create' %}">Add your first product</a>{% endif %}
+</div>
+{% else %}
+<form method="get" class="filter-bar" role="search">
+  <div class="filter-search">
+    <label class="visually-hidden" for="{{ filter_form.q.id_for_label }}">Search products</label>
+    {{ filter_form.q }}
+  </div>
+  <div><label class="visually-hidden" for="{{ filter_form.category.id_for_label }}">Category</label>{{ filter_form.category }}</div>
+  <div><label class="visually-hidden" for="{{ filter_form.stock.id_for_label }}">Stock level</label>{{ filter_form.stock }}</div>
+  <div><label class="visually-hidden" for="{{ filter_form.status.id_for_label }}">Status</label>{{ filter_form.status }}</div>
+  <div class="d-flex gap-2">
+    <button class="btn btn-outline-primary" type="submit">Search</button>
+    {% if filtered %}<a class="btn btn-link px-1" href="{% url 'products:list' %}">Clear</a>{% endif %}
+  </div>
+</form>
+
+<div class="panel p-0">
+  {% if page.object_list %}
+  <div class="table-responsive">
+    <table class="table align-middle table-hover mb-0 list-table">
+      <thead>
+        <tr>
+          <th scope="col" class="thumb-col"><span class="visually-hidden">Photo</span></th>
+          <th scope="col">Product</th>
+          <th scope="col" class="d-none d-md-table-cell">Category</th>
+          <th scope="col" class="num">Default price</th>
+          <th scope="col" class="num">In stock</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for product in page.object_list %}
+        <tr>
+          <td class="thumb-col">
+            {% if product.thumbnail %}<img class="thumb" src="{{ product.thumbnail.url }}" alt="" loading="lazy">
+            {% else %}<span class="thumb thumb-empty" aria-hidden="true"><i class="bi bi-droplet"></i></span>{% endif %}
+          </td>
+          <td>
+            <a class="row-link fw-medium" href="{% url 'products:detail' product.pk %}">{{ product.name }}</a>
+            <div class="small text-secondary">{% for o in product.options.all %}{% if o.is_active %}{{ o.label }}{% if not forloop.last %}, {% endif %}{% endif %}{% empty %}No ways to sell yet{% endfor %}{% if not product.is_active %} <span class="badge text-bg-secondary">Archived</span>{% endif %}</div>
+          </td>
+          <td class="d-none d-md-table-cell">{{ product.category|default:"—" }}</td>
+          <td class="num">{% with o=product.default_option %}{% if o %}{{ o.price|money }}<div class="small text-secondary">{{ o.price_per_label }}</div>{% else %}—{% endif %}{% endwith %}</td>
+          <td class="num">{% include "products/_stock_badge.html" %}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <i class="bi bi-search" aria-hidden="true"></i>
+    <p>No products match these filters. <a href="{% url 'products:list' %}">Show all active products</a></p>
+  </div>
+  {% endif %}
+</div>
+{% include "partials/_pagination.html" %}
+{% endif %}
+{% endblock %}

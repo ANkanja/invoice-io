@@ -3,7 +3,6 @@
 {% block title %}Settings{% endblock %}
 {% block page_title %}Settings{% endblock %}
 {% block page_intro %}<p class="lead-text">Your business details and the defaults used on invoices. Changes apply to new invoices only; issued invoices keep the details they were issued with.</p>{% endblock %}
-{% block head %}<script type="module" src="{% static 'dist/settings.js' %}"></script>{% endblock %}
 
 {% block content %}
 <form method="post" enctype="multipart/form-data" class="panel" novalidate>
@@ -26,7 +25,7 @@
             </div>
             {{ field }}
             <div class="form-text">PNG, JPEG or WebP, up to {{ max_upload_mb }} MB. A transparent PNG looks best on invoices.</div>
-            <div class="invalid-feedback" id="logo-client-error"></div>
+            <div class="invalid-feedback" id="logo-preview-error"></div>
             {% for error in field.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
           </div>
         </div>

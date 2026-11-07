@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}{% if is_new %}Add product{% else %}Edit {{ product }}{% endif %}{% endblock %}
+{% block page_title %}{% if is_new %}Add product{% else %}Edit product{% endif %}{% endblock %}
+{% block page_intro %}{% if is_new %}<p class="lead-text">One product per thing you stock, e.g. “Liquid hand soap”. Its sizes (5 L container, 500 ml bottle…) are ways to sell it, sharing one stock.</p>{% endif %}{% endblock %}
+{% block head %}<script type="module" src="{% static 'dist/product-form.js' %}"></script>{% endblock %}
+
+{% block content %}
+<form method="post" enctype="multipart/form-data" class="panel" novalidate data-product-form>
+  {% csrf_token %}
+  {% if form.non_field_errors %}<div class="alert alert-danger">{% for e in form.non_field_errors %}{{ e }}{% endfor %}</div>{% endif %}
+
+  <fieldset class="form-section">
+    <legend class="h2 mb-1">Product</legend>
+    <div class="row g-x-4">
+      <div class="col-md-6">{% include "partials/_field.html" with field=form.name %}</div>
+      <div class="col-md-6">{% include "partials/_field.html" with field=form.category %}</div>
+      <div class="col-md-6">{% include "partials/_field.html" with field=form.sku %}</div>
+      <div class="col-12">{% include "partials/_field.html" with field=form.description %}</div>
+    </div>
+  </fieldset>
+
+  <fieldset class="form-section">
+    <legend class="h2 mb-1">Stock</legend>
+    <div class="row g-x-4">
+      <div class="col-md-6">{% include "partials/_field.html" with field=form.stock_unit %}</div>
+      <div class="col-12">{% include "partials/_field.html" with field=form.track_stock %}</div>
+    </div>
+    <div id="stock-fields" class="row g-x-4">
+      <div class="col-md-6">
+        <div class="mb-3">
+          <label class="form-label" for="{{ form.low_stock_alert.id_for_label }}">Low-stock alert at <span data-alert-unit>{% if product %}({{ form.alert_unit.symbol }}){% endif %}</span></label>
+          {{ form.low_stock_alert }}
+          <div class="form-text">{{ form.low_stock_alert.help_text }}</div>
+          {% for e in form.low_stock_alert.errors %}<div class="invalid-feedback d-block">{{ e }}</div>{% endfor %}
+        </div>
+      </div>
+      {% if form.opening_stock %}
+      <div class="col-7 col-md-3">{% include "partials/_field.html" with field=form.opening_stock %}</div>
+      <div class="col-5 col-md-3">{% include "partials/_field.html" with field=form.opening_stock_unit %}</div>
+      {% endif %}
+    </div>
+    {% if not is_new and product.track_stock %}<p class="small text-secondary mb-0">To change the quantity in stock, use Stock in, Stock out or Count on the product page.</p>{% endif %}
+  </fieldset>
+
+  {% if form.option %}
+  <fieldset class="form-section">
+    <legend class="h2 mb-1">Price</legend>
+    <p class="section-help">The first way you sell it. You can add more (other sizes, cartons, loose by the litre) afterwards.</p>
+    {% include "products/_option_fields.html" with of=form.option %}
+  </fieldset>
+  {% endif %}
+
+  <fieldset class="form-section">
+    <legend class="h2 mb-1">Photo</legend>
+    <p class="section-help">Used in lists now and on promotional posters later.</p>
+    <img id="photo-preview" class="photo-preview mb-3" alt="Photo preview"
+         {% if product.photo %}src="{{ product.photo.url }}"{% else %}hidden{% endif %}>
+    {% include "partials/_field.html" with field=form.photo %}
+    <div class="invalid-feedback" id="photo-preview-error"></div>
+    {% if form.remove_photo %}{% include "partials/_field.html" with field=form.remove_photo %}{% endif %}
+  </fieldset>
+
+  <div class="sticky-actions d-flex flex-wrap gap-2">
+    <button type="submit" class="btn btn-primary px-4" data-busy-text="Saving…">{% if is_new %}Save product{% else %}Save changes{% endif %}</button>
+    {% if is_new %}<button type="submit" name="add_another" value="1" class="btn btn-outline-primary">Save and add another</button>{% endif %}
+    <a class="btn btn-link" href="{% if is_new %}{% url 'products:list' %}{% else %}{% url 'products:detail' product.pk %}{% endif %}">Cancel</a>
+  </div>
+</form>
+{{ units_data|json_script:"units-data" }}
+{% endblock %}

@@ -38,7 +38,7 @@ class BusinessSettingsForm(BootstrapFormMixin, forms.ModelForm):
             "allow_negative_stock",
         ]
         widgets = {
-            "logo": forms.FileInput(attrs={"accept": "image/png,image/jpeg,image/webp"}),
+            "logo": forms.FileInput(attrs={"accept": "image/png,image/jpeg,image/webp", "data-image-preview": "logo-preview"}),
             "address": forms.Textarea(attrs={"rows": 3}),
             "default_payment_terms": forms.Textarea(attrs={"rows": 2}),
             "default_invoice_notes": forms.Textarea(attrs={"rows": 2}),

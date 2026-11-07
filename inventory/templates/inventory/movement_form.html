@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}{{ title }}{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+{% block page_intro %}<p class="lead-text">{{ intro }}</p>{% endblock %}
+{% block head %}<script type="module" src="{% static 'dist/stock-form.js' %}"></script>{% endblock %}
+
+{% block content %}
+{% if not has_products %}
+<div class="panel empty-state">
+  <i class="bi bi-box-seam" aria-hidden="true"></i>
+  <p class="mb-3">There are no active, stock-tracked products to record stock for yet.</p>
+  {% if perms.products.add_product %}<a class="btn btn-primary" href="{% url 'products:create' %}">Add a product</a>{% endif %}
+</div>
+{% else %}
+<form method="post" class="panel form-narrow" novalidate>
+  {% csrf_token %}
+  {{ form.token }}
+  {% if form.non_field_errors %}<div class="alert alert-danger" role="alert">{% for e in form.non_field_errors %}{{ e }}{% endfor %}</div>{% endif %}
+
+  {% include "partials/_field.html" with field=form.product %}
+  <p class="stock-hint" id="stock-hint" aria-live="polite" hidden></p>
+
+  {% with pair=form.quantity_fields %}
+  <div class="row g-2">
+    <div class="col-6">{% include "partials/_field.html" with field=pair.0 %}</div>
+    <div class="col-6">{% include "partials/_field.html" with field=pair.1 %}</div>
+  </div>
+  {% endwith %}
+  {% for field in form.other_fields %}{% include "partials/_field.html" %}{% endfor %}
+
+  <div class="d-flex flex-wrap gap-2">
+    <button type="submit" class="btn btn-primary px-4" data-busy-text="Saving…">{{ submit_label }}</button>
+    <button type="submit" name="add_another" value="1" class="btn btn-outline-primary">Save and record another</button>
+    <a class="btn btn-link" href="{% url 'inventory:overview' %}">Cancel</a>
+  </div>
+</form>
+{{ product_data|json_script:"stock-product-data" }}
+{% endif %}
+{% endblock %}

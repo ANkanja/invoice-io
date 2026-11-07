@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% load formatting %}
+{% block title %}Invoice {{ current.number }}, version {{ revision.revision_no }}{% endblock %}
+{% block page_title %}Invoice {{ current.number }}: earlier version{% endblock %}
+{% block page_intro %}<p class="lead-text">Version {{ revision.revision_no }}, replaced on {{ superseded|date:"j M Y, H:i" }} by {{ revision.created_by }}.</p>{% endblock %}
+{% block page_actions %}
+  <a class="btn btn-outline-primary" href="{% url 'invoices:revision_pdf' current.pk revision.revision_no %}" target="_blank" rel="noopener"><i class="bi bi-printer" aria-hidden="true"></i> View PDF</a>
+  <a class="btn btn-primary" href="{% url 'invoices:detail' current.pk %}">Go to current version</a>
+{% endblock %}
+{% block content %}
+<div class="alert alert-warning"><strong>Superseded.</strong> This version is kept for your records only. What changed: {{ revision.reason }}</div>
+<div class="row g-4"><div class="col-xl-8">
+  {% include "invoices/_invoice_doc.html" %}
+</div></div>
+{% endblock %}

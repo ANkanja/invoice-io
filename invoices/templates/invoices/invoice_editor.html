@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}{% if amend %}Amend {{ invoice.number }}{% elif invoice %}Edit draft{% else %}New invoice{% endif %}{% endblock %}
+{% block page_title %}{% if amend %}Amend invoice {{ invoice.number }}{% elif invoice %}Edit draft invoice{% else %}New invoice{% endif %}{% endblock %}
+{% block page_intro %}{% if amend %}<p class="lead-text">Correct this invoice, e.g. add an item that was left off. It keeps its number; the current version is saved in its history and stock is adjusted to match.</p>{% elif invoice.replaces %}<p class="lead-text">Replaces cancelled invoice <a href="{% url 'invoices:detail' invoice.replaces.pk %}">{{ invoice.replaces.number }}</a>.</p>{% endif %}{% endblock %}
+{% block head %}<script type="module" src="{% static 'dist/invoice-editor.js' %}"></script>{% endblock %}
+
+{% block content %}
+<form method="post" novalidate id="invoice-form" data-invoice-form>
+  {% csrf_token %}
+  {{ lines.management_form }}
+  {% if header.non_field_errors or lines.non_form_errors %}
+  <div class="alert alert-danger" role="alert">
+    {% for e in header.non_field_errors %}<div>{{ e }}</div>{% endfor %}
+    {% for e in lines.non_form_errors %}<div>{{ e }}</div>{% endfor %}
+  </div>
+  {% endif %}
+
+  <div class="row g-4">
+    <div class="col-lg-8">
+      <section class="panel" aria-labelledby="customer-title">
+        <h2 id="customer-title">Customer</h2>
+        {% include "partials/_field.html" with field=header.customer %}
+        <div class="customer-summary" data-customer-summary hidden></div>
+        <div id="one-time-fields" data-one-time-fields>
+          <div class="row g-x-4">
+            <div class="col-md-6">{% include "partials/_field.html" with field=header.customer_name %}</div>
+            <div class="col-md-6">{% include "partials/_field.html" with field=header.customer_phone %}</div>
+          </div>
+          <details class="more-details" {% if header.customer_contact_person.value or header.customer_email.value or header.customer_address.value or header.customer_tax_pin.value %}open{% endif %}>
+            <summary>More customer details</summary>
+            <div class="row g-x-4 mt-2">
+              <div class="col-md-6">{% include "partials/_field.html" with field=header.customer_contact_person %}</div>
+              <div class="col-md-6">{% include "partials/_field.html" with field=header.customer_email %}</div>
+              <div class="col-md-6">{% include "partials/_field.html" with field=header.customer_address %}</div>
+              <div class="col-md-6">{% include "partials/_field.html" with field=header.customer_tax_pin %}</div>
+            </div>
+          </details>
+        </div>
+      </section>
+    </div>
+    <div class="col-lg-4">
+      <section class="panel" aria-labelledby="dates-title">
+        <h2 id="dates-title">Dates</h2>
+        {% include "partials/_field.html" with field=header.issue_date %}
+        {% include "partials/_field.html" with field=header.due_date %}
+      </section>
+    </div>
+  </div>
+
+  <section class="panel mt-4" aria-labelledby="lines-title">
+    <div class="d-flex flex-wrap justify-content-between align-items-baseline gap-2 mb-2">
+      <h2 id="lines-title" class="mb-0">Items</h2>
+      <span class="small text-secondary">Press Enter to move to the next box; at the end of a line it adds a new one.</span>
+    </div>
+    <div class="line-head" aria-hidden="true">
+      <span>Product</span><span>Description</span><span class="num">Qty</span><span>Unit</span>
+      <span class="num">Price</span><span class="num">Discount</span><span class="num">Amount</span><span></span>
+    </div>
+    <div data-lines>
+      {% for form in lines %}{% include "invoices/_line_row.html" %}{% endfor %}
+    </div>
+    <template id="line-template">{% with form=lines.empty_form %}{% include "invoices/_line_row.html" %}{% endwith %}</template>
+    <button type="button" class="btn btn-outline-primary btn-sm mt-3" data-add-line><i class="bi bi-plus-lg" aria-hidden="true"></i> Add line</button>
+  </section>
+
+  {% if amend %}
+  <section class="panel mt-4 amend-panel" aria-labelledby="amend-title">
+    <h2 id="amend-title">Reason for the change</h2>
+    {% include "partials/_field.html" with field=amend_form.reason %}
+  </section>
+  {% endif %}
+
+  <div class="row g-4 mt-0">
+    <div class="col-lg-7">
+      <section class="panel" aria-labelledby="terms-title">
+        <h2 id="terms-title">Terms and notes</h2>
+        {% include "partials/_field.html" with field=header.payment_terms %}
+        {% include "partials/_field.html" with field=header.notes %}
+      </section>
+    </div>
+    <div class="col-lg-5">
+      <section class="panel totals-panel" aria-labelledby="totals-title">
+        <h2 id="totals-title">Totals</h2>
+        {% include "partials/_field.html" with field=header.invoice_discount %}
+        <dl class="totals-list" aria-live="polite">
+          <dt>Subtotal</dt><dd data-total="subtotal">—</dd>
+          <dt data-row="discount" hidden>Discount</dt><dd data-row="discount" data-total="discount" hidden>—</dd>
+          <dt data-row="tax" hidden data-tax-label>Tax</dt><dd data-row="tax" data-total="tax" hidden>—</dd>
+          <dt class="grand">Total</dt><dd class="grand" data-total="total">—</dd>
+        </dl>
+        <p class="small text-secondary mb-0" data-totals-note>Totals are checked again on the server when you save.</p>
+      </section>
+    </div>
+  </div>
+
+  <div class="sticky-actions page-actions d-flex flex-wrap gap-2">
+    {% if amend %}
+    <button type="submit" class="btn btn-primary px-4" data-busy-text="Saving…">Save amendment</button>
+    {% else %}
+    <button type="submit" class="btn btn-primary px-4" data-busy-text="Saving…">Save and review</button>
+    <button type="submit" name="save_and_continue" value="1" class="btn btn-outline-primary">Save and keep editing</button>
+    {% endif %}
+    <a class="btn btn-link" href="{% if invoice %}{% url 'invoices:detail' invoice.pk %}{% else %}{% url 'invoices:list' %}{% endif %}">Cancel</a>
+  </div>
+</form>
+{{ editor_data|json_script:"invoice-editor-data" }}
+{% endblock %}

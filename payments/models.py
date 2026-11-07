@@ -7,9 +7,34 @@ from django.db import models
 from django.db.models import Q
 from django.utils import timezone
 
-from core.models import AppendOnlyModel, ImmutableRecordError
+from core.models import ImmutableRecordError
 
 POSITIVE = [MinValueValidator(Decimal("0.01"))]
+MONEY = {"max_digits": 12, "decimal_places": 2}
+
+# An allocation counts towards an invoice's "amount paid" only while its payment
+# isn't reversed and the allocation hasn't been released (invoice cancelled).
+ACTIVE_ALLOCATION = Q(payment__is_reversed=False, released_at__isnull=True)
+
+
+class PaymentQuerySet(models.QuerySet):
+    def with_allocation_totals(self):
+        """Annotate `allocated` (applied to invoices) and `unallocated` (credit
+        still to apply). Reversed payments have no credit."""
+        from django.db.models import DecimalField, F, OuterRef, Subquery, Sum, Value
+        from django.db.models.functions import Coalesce
+
+        money = DecimalField(**MONEY)
+        allocated = (
+            PaymentAllocation.objects.filter(payment=OuterRef("pk"), released_at__isnull=True)
+            .values("payment").annotate(s=Sum("amount")).values("s")
+        )
+        return self.annotate(
+            allocated=Coalesce(Subquery(allocated, output_field=money), Value(Decimal("0.00")), output_field=money)
+        ).annotate(unallocated=F("amount") - F("allocated"))
+
+    def active(self):
+        return self.filter(is_reversed=False)
 
 
 class PaymentMethod(models.Model):
@@ -61,8 +86,11 @@ class Payment(models.Model):
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="+")
     created_at = models.DateTimeField(auto_now_add=True)
 
+    objects = PaymentQuerySet.as_manager()
+
     class Meta:
         ordering = ["-payment_date", "-id"]
+        permissions = [("reverse_payment", "Can reverse payments")]
         indexes = [models.Index(fields=["payment_date"]), models.Index(fields=["customer", "payment_date"])]
         constraints = [
             models.CheckConstraint(condition=Q(amount__gt=0), name="payment_amount_gt_0"),
@@ -104,20 +132,64 @@ class Payment(models.Model):
     def delete(self, *args, **kwargs):
         raise ImmutableRecordError("Payments cannot be deleted. Reverse the payment instead.")
 
+    def get_allocated(self) -> Decimal:
+        if hasattr(self, "allocated"):
+            return self.allocated
+        total = self.allocations.filter(released_at__isnull=True).aggregate(s=models.Sum("amount"))["s"]
+        return total or Decimal("0.00")
 
-class PaymentAllocation(AppendOnlyModel):
-    """How much of a payment is applied to a given invoice."""
+    def get_unallocated(self) -> Decimal:
+        """Credit not yet applied to any invoice (0 for reversed payments)."""
+        if self.is_reversed:
+            return Decimal("0.00")
+        return self.amount - self.get_allocated()
+
+
+class PaymentAllocation(models.Model):
+    """How much of a payment is applied to a given invoice.
+
+    Never edited or deleted. If the invoice is cancelled, the allocation is
+    *released* (released_at + reason): the money goes back to the payment as
+    credit, which can then be applied to the replacement or another invoice.
+    """
 
     payment = models.ForeignKey(Payment, on_delete=models.PROTECT, related_name="allocations")
     invoice = models.ForeignKey("invoices.Invoice", on_delete=models.PROTECT, related_name="allocations")
-    amount = models.DecimalField(max_digits=12, decimal_places=2, validators=POSITIVE)
+    amount = models.DecimalField(**MONEY, validators=POSITIVE)
     created_at = models.DateTimeField(auto_now_add=True)
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, null=True, related_name="+")
+    released_at = models.DateTimeField(null=True, blank=True)
+    released_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, null=True, blank=True,
+                                    related_name="+")
+    release_reason = models.CharField(max_length=255, blank=True)
 
     class Meta:
+        ordering = ["created_at", "id"]
         constraints = [
             models.CheckConstraint(condition=Q(amount__gt=0), name="allocation_amount_gt_0"),
-            models.UniqueConstraint(fields=["payment", "invoice"], name="allocation_unique_payment_invoice"),
+            # One live allocation per payment and invoice; released ones don't count.
+            models.UniqueConstraint(fields=["payment", "invoice"], condition=Q(released_at__isnull=True),
+                                    name="allocation_unique_live_payment_invoice"),
+            models.CheckConstraint(condition=Q(released_at__isnull=True) | ~Q(release_reason=""),
+                                   name="allocation_release_has_reason"),
         ]
 
     def __str__(self):
         return f"{self.amount} of payment {self.payment_id} → invoice {self.invoice_id}"
+
+    RELEASE_FIELDS = frozenset({"released_at", "released_by_id", "release_reason"})
+
+    def save(self, *args, **kwargs):
+        if not self._state.adding and self.pk:
+            attnames = [f.attname for f in self._meta.concrete_fields]
+            old = type(self).objects.filter(pk=self.pk).values(*attnames).first()
+            if old:
+                changed = {n for n in attnames if old[n] != getattr(self, n)}
+                if old["released_at"] is not None and changed:
+                    raise ImmutableRecordError("A released allocation can't be changed.")
+                if changed - self.RELEASE_FIELDS:
+                    raise ImmutableRecordError("Payment allocations can't be edited; only released.")
+        super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        raise ImmutableRecordError("Payment allocations can't be deleted.")
