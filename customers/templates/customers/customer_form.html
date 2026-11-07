@@ -13,6 +13,7 @@
       {{ choice.tag }}<label class="form-check-label" for="{{ choice.id_for_label }}">{{ choice.choice_label }}</label>
     </div>
     {% endfor %}
+    <div class="form-text">Institutions get institution prices and payment terms on new invoices.</div>
   </fieldset>
   <div class="row g-x-4">
     <div class="col-md-6">{% include "partials/_field.html" with field=form.name %}</div>

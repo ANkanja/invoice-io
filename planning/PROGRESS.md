@@ -239,6 +239,34 @@ the bottom rather than bunched under the totals. Decisions:
 
 Verified: 223 tests pass; real invoices rendered from a copy of the live database.
 
+## Customer types and sharing invoices — done
+
+Requested: individuals and institutions pay different prices and have
+different payment terms; the invoice fills in from the customer's type but can
+be changed by hand; share buttons for WhatsApp and email. Decisions:
+- Customer type "Organisation" is now called **Institution** (stored value
+  unchanged, so existing customers keep their type).
+- Each way to sell has an optional **institution price**; blank means the
+  normal price (`products.pricing.price_for`).
+- Settings has days to pay and terms text for each type ("Payment terms"
+  section). Payment details (where to pay) stay the same for everyone.
+- Invoices record the customer type (`Invoice.customer_kind`). It follows the
+  saved customer but can be changed on the invoice. Changing it in the editor
+  switches only prices still at the automatic value (typed prices stay) and the
+  terms/due date if they were still the automatic ones. Invoices made before
+  this have a blank type; nothing existing was rewritten.
+- Sharing: no email service. Phones that can share files get the share menu
+  with the image; otherwise the image downloads and WhatsApp (wa.me) or the
+  email app opens with a prefilled message (`invoices/sharing.py`,
+  `static/ts/invoice-share.ts`). Shown on issued invoices only.
+- Migrations: core/0002, customers/0002, invoices/0005, products/0006, all
+  additive (new fields, one label change).
+
+Verified: **243 tests pass** (20 new in `invoices/tests/test_customer_types.py`); browser run on
+a copy of the live database at 1366 px and 390 px (type switch re-prices and
+re-terms, typed price kept, saved customer sets the type, WhatsApp fallback).
+The phone share menu needs HTTPS, so it can't be checked locally.
+
 ## Next: Phase 5 — posters
 - Needs your answers first (D7): what your poster templates are (Canva/Photoshop
   exports? PNG/JPG/PDF?), which sizes (square, story, A4) and whether you have the
@@ -249,5 +277,6 @@ Verified: 223 tests pass; real invoices rendered from a copy of the live databas
 - Bulk `QuerySet.update()` and `.delete()` bypass the model-level edit guards. Project code doesn't use them on protected models; the database constraints still apply.
 - There's no rate limiting on login attempts yet (Phase 7) and no password reset by email (no email provider). Reset passwords with `python manage.py changepassword <username>`.
 - Page scripts share small chunks (`dist/chunks/decimal.js`, `units.js`) that aren't cache-busted in production; they're tiny and rarely change. To revisit in Phase 7 if needed.
+- Calvary hill Hospital is saved as an Individual; change it to Institution on its customer page if it should get institution prices.
 - Jik was converted with the generic rule ("1L container" at KES 1,300, stock 23 L); the owner should confirm that's how it's sold.
 - Invoice quantities allow 2 decimal places (type 125 g rather than 0.125 kg).

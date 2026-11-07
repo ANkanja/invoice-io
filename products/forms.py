@@ -81,6 +81,9 @@ class SellingOptionFields(BootstrapFormMixin, forms.Form):
                                  label="Price is per", widget=forms.Select(attrs={"data-dimension-filter": ""}))
     price = forms.DecimalField(min_value=Decimal("0"), max_digits=12, decimal_places=2, label="Selling price (KES)",
                                widget=forms.NumberInput(attrs=MONEY_ATTRS))
+    institution_price = forms.DecimalField(
+        required=False, min_value=Decimal("0"), max_digits=12, decimal_places=2, label="Institution price (KES)",
+        help_text="Leave blank to charge institutions the selling price.", widget=forms.NumberInput(attrs=MONEY_ATTRS))
     cost_price = forms.DecimalField(required=False, min_value=Decimal("0"), max_digits=12, decimal_places=2,
                                     label="Cost price (KES)", help_text="Optional, per pack or per unit as priced.",
                                     widget=forms.NumberInput(attrs=MONEY_ATTRS))
@@ -110,7 +113,8 @@ class SellingOptionFields(BootstrapFormMixin, forms.Form):
                 return {}
             label = d.get("label") or _pack_label(pack, qty, unit)
             return {"method": method, "label": label, "package_unit": pack, "content_quantity": content,
-                    "price_unit": None, "price": d["price"], "cost_price": d.get("cost_price")}
+                    "price_unit": None, "price": d["price"], "institution_price": d.get("institution_price"),
+                    "cost_price": d.get("cost_price")}
         price_unit = d.get("price_unit")
         if not price_unit:
             self.add_error("price_unit", "Choose what the price is per.")
@@ -121,7 +125,8 @@ class SellingOptionFields(BootstrapFormMixin, forms.Form):
             self.add_error("price_unit", exc.messages[0])
             return {}
         return {"method": method, "label": d.get("label") or f"per {price_unit.name}", "package_unit": None,
-                "content_quantity": None, "price_unit": price_unit, "price": d["price"], "cost_price": d.get("cost_price")}
+                "content_quantity": None, "price_unit": price_unit, "price": d["price"],
+                "institution_price": d.get("institution_price"), "cost_price": d.get("cost_price")}
 
 
 class ProductForm(BootstrapFormMixin, forms.ModelForm):
@@ -256,7 +261,7 @@ class SellingOptionForm(SellingOptionFields):
         self.product, self.instance = product, instance
         if instance is not None and "initial" not in kwargs:
             initial = {"method": instance.method, "label": instance.label, "price": instance.price,
-                       "cost_price": instance.cost_price, "is_default": instance.is_default, "is_active": instance.is_active}
+                       "institution_price": instance.institution_price, "cost_price": instance.cost_price, "is_default": instance.is_default, "is_active": instance.is_active}
             if instance.method == SellingOption.Method.PACKAGE:
                 display = display_unit_for(product.stock_unit) if product.stock_unit.dimension != "count" else product.stock_unit
                 initial.update(package_unit=instance.package_unit,

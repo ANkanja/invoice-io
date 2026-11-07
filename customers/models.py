@@ -5,7 +5,8 @@ from core.validators import phone_validator
 
 
 class Customer(TimeStampedModel):
-    """A saved customer: an individual or an organisation (school, hospital…).
+    """A saved customer: an individual or an institution (school, hospital…).
+    The type decides which prices and payment terms new invoices start with.
 
     One-time customers don't need a record — an invoice stores its own copy of
     the customer's details either way.
@@ -13,7 +14,8 @@ class Customer(TimeStampedModel):
 
     class Kind(models.TextChoices):
         INDIVIDUAL = "individual", "Individual"
-        ORGANIZATION = "organization", "Organisation"
+        # Stored as "organization" (the value existing records already have).
+        INSTITUTION = "organization", "Institution"
 
     kind = models.CharField(max_length=20, choices=Kind.choices, default=Kind.INDIVIDUAL)
     name = models.CharField(max_length=150)

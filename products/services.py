@@ -107,7 +107,8 @@ def save_option(product: Product, values: dict, user, *, instance: SellingOption
     Existing invoices keep their own copy of the option's label, units and price."""
     product = Product.objects.select_for_update().get(pk=product.pk)
     option = instance or SellingOption(product=product)
-    before = None if instance is None else {"label": instance.label, "price": str(instance.price)}
+    before = None if instance is None else {"label": instance.label, "price": str(instance.price),
+                                            "institution_price": str(instance.institution_price or "")}
     for key, value in values.items():
         setattr(option, key, value)
     option.is_active = is_active
@@ -124,5 +125,6 @@ def save_option(product: Product, values: dict, user, *, instance: SellingOption
         first = active.order_by("sort_order", "pk").first()
         SellingOption.objects.filter(pk=first.pk).update(is_default=True)
     AuditLog.record(actor=user, action="product.option_saved", obj=product,
-                    changes={"option": option.label, "price": str(option.price), "before": before or ""})
+                    changes={"option": option.label, "price": str(option.price),
+                             "institution_price": str(option.institution_price or ""), "before": before or ""})
     return option

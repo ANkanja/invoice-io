@@ -103,6 +103,11 @@ class Invoice(TimeStampedModel):
     customer_email = models.EmailField(blank=True)
     customer_address = models.TextField(blank=True)
     customer_tax_pin = models.CharField(max_length=30, blank=True)
+    # Individual or institution ("organization"): which prices and payment terms
+    # the invoice starts with. Blank on invoices made before customer types were used.
+    customer_kind = models.CharField(
+        max_length=20, blank=True, choices=[("individual", "Individual"), ("organization", "Institution")],
+    )
 
     # Seller details frozen at issue (from BusinessSettings.snapshot()).
     business_snapshot = models.JSONField(default=dict, blank=True)

@@ -75,6 +75,11 @@ class BusinessSettings(TimeStampedModel):
         null=True, blank=True, help_text="Days until due. Leave blank for no due date."
     )
     default_payment_terms = models.TextField("default payment terms text", blank=True)
+    # The two fields above apply to individuals; these to institutions.
+    institution_payment_terms_days = models.PositiveSmallIntegerField(
+        null=True, blank=True, help_text="Days until due. Leave blank for no due date."
+    )
+    institution_payment_terms = models.TextField("institution payment terms text", blank=True)
     default_invoice_notes = models.TextField(blank=True)
     payment_instructions = models.TextField(
         blank=True, help_text="E.g. M-Pesa till/paybill or bank details, printed on invoices."
@@ -119,6 +124,13 @@ class BusinessSettings(TimeStampedModel):
 
     def delete(self, *args, **kwargs):
         raise ImmutableRecordError("Business settings cannot be deleted.")
+
+    def payment_defaults(self, customer_kind: str) -> tuple[int | None, str]:
+        """(Days until due, payment terms text) that a new invoice starts with
+        for this type of customer ("organization" is an institution)."""
+        if customer_kind == "organization":
+            return self.institution_payment_terms_days, self.institution_payment_terms
+        return self.default_payment_terms_days, self.default_payment_terms
 
     @classmethod
     def load(cls) -> "BusinessSettings":

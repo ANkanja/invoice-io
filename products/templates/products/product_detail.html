@@ -42,6 +42,7 @@
           <div class="text-end">
             <div class="fw-semibold num-left">{{ o.price|money }}</div>
             <div class="small text-secondary">{{ o.price_per_label }}</div>
+            {% if o.institution_price is not None %}<div class="small text-secondary">Institutions {{ o.institution_price|money }}</div>{% endif %}
             {% if perms.products.change_product %}<a class="small" href="{% url 'products:option_edit' product.pk o.pk %}">Edit</a>{% endif %}
           </div>
         </li>

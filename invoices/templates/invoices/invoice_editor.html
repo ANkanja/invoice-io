@@ -37,6 +37,16 @@
             </div>
           </details>
         </div>
+        <fieldset class="mb-1" aria-describedby="kind-help">
+          <legend class="form-label fs-6 mb-1">{{ header.customer_kind.label }}</legend>
+          {% for choice in header.customer_kind %}
+          <div class="form-check form-check-inline">
+            {{ choice.tag }}<label class="form-check-label" for="{{ choice.id_for_label }}">{{ choice.choice_label }}</label>
+          </div>
+          {% endfor %}
+          <div class="form-text" id="kind-help">{{ header.customer_kind.help_text }}</div>
+          {% for e in header.customer_kind.errors %}<div class="invalid-feedback d-block">{{ e }}</div>{% endfor %}
+        </fieldset>
       </section>
     </div>
     <div class="col-lg-4">

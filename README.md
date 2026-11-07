@@ -54,10 +54,10 @@ python manage.py runserver
 
 Open http://127.0.0.1:8000, sign in, then:
 
-1. **Settings**: enter your business details. Invoices can't be issued until the business name and phone number are set.
+1. **Settings**: enter your business details. Invoices can't be issued until the business name and phone number are set. Under **Payment terms**, set the days to pay and the terms wording for individuals and for institutions.
 2. **Products → Add product**: add each item you sell once, with how its stock is counted and the first way you sell it. See **Setting up your products** below.
-3. **Customers → Add customer**: add the schools, hospitals and people you supply regularly. One-time buyers don't need saving.
-4. **Invoices → New invoice**: choose the customer, add lines (press Enter to move along), then **Save and review**. Check the review page and press **Issue invoice**: it gets its number and stock is deducted. Use **View / print image** or **Download** to send it: every invoice is one PNG picture, with payment details at the bottom. A long invoice makes a taller picture rather than a second page.
+3. **Customers → Add customer**: add the schools, hospitals and people you supply regularly, and choose **Individual** or **Institution**. One-time buyers don't need saving.
+4. **Invoices → New invoice**: choose the customer, add lines (press Enter to move along), then **Save and review**. Check the review page and press **Issue invoice**: it gets its number and stock is deducted. Choosing the customer fills in their type (Individual or Institution), which picks the prices and payment terms; you can change the type, a price or the terms yourself. Press **WhatsApp** or **Email** on an issued invoice to send it (see *Sending invoices* below), or use **View / print image** or **Download**: every invoice is one PNG picture, with payment details at the bottom. A long invoice makes a taller picture rather than a second page.
 5. **Payments**: when money comes in, press **Record payment** on the invoice (or on the customer's page, or under Payments). One payment can be split across several of the customer's invoices; type the amount and it fills the oldest first. Anything left over is kept as **credit** and can be applied later (the invoice page offers a one-click "Use credit" button). Each payment has a printable **Receipt**.
    A payment entered by mistake, a bounced cheque or a refund is **reversed** with a reason, never deleted.
 6. **Dashboard**: invoiced vs received today, this week and this month; what you're owed and what's overdue; recent invoices and payments; best sellers this month; low stock.
@@ -97,6 +97,9 @@ more on the product's page under **Ways to sell → Add**)
 - **By measure**: e.g. "loose, per litre", priced per L. On an invoice you
   can type the quantity in L or ml (1,500 ml at a per-litre price is charged
   as 1.5 L).
+- **Institution price** (optional): what schools, hospitals and other
+  institutions pay for this way to sell it. Leave it blank and they pay the
+  normal selling price.
 - A product can have several ways to sell it, all sharing the same stock.
   Mark one as the **default**; it's chosen automatically on new invoices.
 - Changing a price only affects new invoices. Untick "Available for new
@@ -118,6 +121,18 @@ old size and price became its first selling option (e.g. "5 L container"
 at the old price). Check each product's **Ways to sell** once and correct
 anything that doesn't match how you actually sell it. Old invoices are
 unchanged.
+
+## Sending invoices
+
+On an issued invoice, press **WhatsApp** or **Email**.
+- On a phone that can share files (when the app is opened over HTTPS, as it
+  will be once it's online), the phone's share menu opens with the invoice
+  image attached: pick WhatsApp, Gmail or any other app.
+- Otherwise (on the PC, or a phone opening the app over Wi-Fi), the image is
+  downloaded and WhatsApp or your email app opens with the customer and a short
+  message filled in. Attach the downloaded image and send.
+- WhatsApp opens the customer's chat when a phone number is saved (numbers
+  starting 07 or 01 are treated as Kenyan). The app never sends anything itself.
 
 ## 3. Day-to-day development
 

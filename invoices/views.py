@@ -11,6 +11,7 @@ from core.models import BusinessSettings
 from core.money import format_money
 from core.pagination import paginate
 from core.permissions import perm_required
+from customers.models import Customer
 from inventory.services import InsufficientStockError
 from products.models import Unit
 from products.pricing import units_for_option
@@ -21,6 +22,7 @@ from .forms import (AmendInvoiceForm, CancelInvoiceForm, InvoiceFilterForm, Invo
                     options_for, products_for)
 from .models import Invoice, InvoiceLine, InvoiceRevision
 from .pdf import invoice_filename, render_invoice_image
+from .sharing import share_data
 
 Status = Invoice.Status
 
@@ -105,6 +107,7 @@ def _product_options(products, options, invoice=None):
     for o in options:
         by_product.setdefault(o.product_id, []).append({
             "id": o.pk, "label": o.label, "method": o.method, "price": str(o.price),
+            "institutionPrice": "" if o.institution_price is None else str(o.institution_price),
             "per": o.price_per_label, "isDefault": o.is_default, "active": o.is_active,
             "content": str(o.content_quantity or ""),
             "priceUnit": o.price_unit.code if o.price_unit else "",
@@ -139,7 +142,9 @@ def _header_initial(invoice: Invoice) -> dict:
         "customer": invoice.customer_id, "customer_name": invoice.customer_name,
         "customer_contact_person": invoice.customer_contact_person, "customer_phone": invoice.customer_phone,
         "customer_email": invoice.customer_email, "customer_address": invoice.customer_address,
-        "customer_tax_pin": invoice.customer_tax_pin, "issue_date": invoice.issue_date,
+        "customer_tax_pin": invoice.customer_tax_pin,
+        "customer_kind": invoice.customer_kind or (invoice.customer.kind if invoice.customer_id else Customer.Kind.INDIVIDUAL),
+        "issue_date": invoice.issue_date,
         "due_date": invoice.due_date, "invoice_discount": invoice.invoice_discount or None,
         "payment_terms": invoice.payment_terms, "notes": invoice.notes,
     }
@@ -151,7 +156,9 @@ def _editor(request, invoice: Invoice | None, *, amend: bool = False):
     amend_form = AmendInvoiceForm(request.POST or None) if amend else None
     if request.method == "POST":
         header = InvoiceHeaderForm(request.POST, invoice=invoice)
-        lines = make_line_formset(data=request.POST, products=products, options=options)
+        posted_kind = request.POST.get("customer_kind")
+        kind = posted_kind if posted_kind in Customer.Kind.values else Customer.Kind.INDIVIDUAL
+        lines = make_line_formset(data=request.POST, products=products, options=options, customer_kind=kind)
         forms_ok = header.is_valid() and lines.is_valid() and (amend_form is None or amend_form.is_valid())
         if forms_ok:
             try:
@@ -176,10 +183,13 @@ def _editor(request, invoice: Invoice | None, *, amend: bool = False):
                 return redirect("invoices:detail", pk=saved.pk)
         messages.error(request, "Not saved yet. Check the highlighted fields.")
     elif invoice is None:
-        header = InvoiceHeaderForm(initial=services.new_draft_initial())
         initial_customer = request.GET.get("customer", "")
-        if initial_customer.isdigit():
-            header.initial["customer"] = int(initial_customer)
+        customer = Customer.objects.filter(pk=int(initial_customer), is_active=True).first() \
+            if initial_customer.isdigit() else None
+        header = InvoiceHeaderForm(initial=services.new_draft_initial(
+            customer_kind=customer.kind if customer else Customer.Kind.INDIVIDUAL))
+        if customer:
+            header.initial["customer"] = customer.pk
         lines = make_line_formset(products=products, options=options)
     else:
         header = InvoiceHeaderForm(invoice=invoice, initial=_header_initial(invoice))
@@ -200,8 +210,12 @@ def _editor(request, invoice: Invoice | None, *, amend: bool = False):
             "products": _product_options(products, options, invoice if amend else None),
             "units": _units_data(),
             "customers": {
-                str(c.pk): {"contact": c.contact_person, "phone": c.phone, "email": c.email, "address": c.billing_address}
+                str(c.pk): {"contact": c.contact_person, "phone": c.phone, "email": c.email,
+                            "address": c.billing_address, "kind": c.kind}
                 for c in customers
+            },
+            "paymentDefaults": {
+                kind: dict(zip(("days", "terms"), settings.payment_defaults(kind))) for kind in Customer.Kind.values
             },
             "taxRate": str(tax_rate),
             "taxLabel": (invoice.tax_label if amend else (settings.tax_label if settings.tax_enabled else "")),
@@ -276,6 +290,7 @@ def invoice_detail(request, pk: int):
         "revisions": list(invoice.revisions.select_related("created_by")),
         "allocations": list(invoice.allocations.select_related("payment__method").order_by("created_at", "pk")),
         "credit_payments": _credit_payments(invoice),
+        "share": share_data(invoice, seller, invoice.balance) if invoice.status == Status.ISSUED else None,
     })
 
 

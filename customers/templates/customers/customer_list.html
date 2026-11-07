@@ -9,7 +9,7 @@
 {% if not has_any %}
 <div class="panel empty-state">
   <i class="bi bi-people" aria-hidden="true"></i>
-  <p class="mb-3">No customers yet. Save the people and organisations you supply regularly; one-off buyers can be typed straight onto an invoice.</p>
+  <p class="mb-3">No customers yet. Save the people and institutions you supply regularly; one-off buyers can be typed straight onto an invoice.</p>
   {% if perms.customers.add_customer %}<a class="btn btn-primary" href="{% url 'customers:create' %}">Add your first customer</a>{% endif %}
 </div>
 {% else %}
@@ -33,7 +33,7 @@
         <tr>
           <td>
             <a class="row-link fw-medium" href="{% url 'customers:detail' c.pk %}">{{ c.name }}</a>
-            <div class="small text-secondary">{% if c.kind == "organization" %}Organisation{% if c.contact_person %}, contact {{ c.contact_person }}{% endif %}{% else %}Individual{% endif %}{% if not c.is_active %} <span class="badge text-bg-secondary">Archived</span>{% endif %}</div>
+            <div class="small text-secondary">{% if c.kind == "organization" %}Institution{% if c.contact_person %}, contact {{ c.contact_person }}{% endif %}{% else %}Individual{% endif %}{% if not c.is_active %} <span class="badge text-bg-secondary">Archived</span>{% endif %}</div>
           </td>
           <td class="text-nowrap">{% if c.phone %}<a href="tel:{{ c.phone|cut:' ' }}">{{ c.phone }}</a>{% else %}—{% endif %}</td>
           <td class="d-none d-md-table-cell">{{ c.email|default:"—" }}</td>

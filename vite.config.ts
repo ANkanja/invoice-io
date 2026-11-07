@@ -27,6 +27,7 @@ export default defineConfig(({ mode }) => ({
         "invoice-editor": resolve(import.meta.dirname, "static/ts/invoice-editor.ts"),
         "product-form": resolve(import.meta.dirname, "static/ts/product-form.ts"),
         "payment-form": resolve(import.meta.dirname, "static/ts/payment-form.ts"),
+        "invoice-share": resolve(import.meta.dirname, "static/ts/invoice-share.ts"),
       },
       output: {
         entryFileNames: "[name].js",

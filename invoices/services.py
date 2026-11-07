@@ -15,11 +15,12 @@ from django.db.models import Max, Q
 from django.utils import timezone
 
 from core.models import AuditLog, BusinessSettings
+from customers.models import Customer
 from core.money import quantize, to_decimal
 from inventory.services import deduct_stock_for_invoice, restore_stock_for_invoice
 from payments.services import apply_released_to_replacement, release_invoice_payments
 from products.models import SellingOption, Unit
-from products.pricing import resolve_quantity
+from products.pricing import price_for, resolve_quantity
 
 from .calculations import calculate_invoice, calculate_line
 from .models import Invoice, InvoiceLine, InvoiceRevision
@@ -64,8 +65,8 @@ def build_line(invoice: Invoice, position: int, data: dict) -> InvoiceLine:
     """An unsaved InvoiceLine with its full pricing snapshot.
 
     data keys: product, selling_option, quantity, entered_unit (Unit/code; product
-    lines), free_unit (text; other lines), unit_price (None → option price),
-    line_discount, description.
+    lines), free_unit (text; other lines), unit_price (None → the option's price
+    for the invoice's customer type), line_discount, description.
     """
     product = data.get("product")
     option: SellingOption | None = data.get("selling_option")
@@ -82,13 +83,14 @@ def build_line(invoice: Invoice, position: int, data: dict) -> InvoiceLine:
     description = (data.get("description") or "").strip()
     if option is not None:
         priced = resolve_quantity(option, data["quantity"], _as_unit(data.get("entered_unit")))
+        catalogue_price = price_for(option, invoice.customer_kind)
         unit_price = data.get("unit_price")
-        unit_price = option.price if unit_price is None else unit_price
+        unit_price = catalogue_price if unit_price is None else unit_price
         result = calculate_line(priced.price_quantity, unit_price, discount)
         return InvoiceLine(
             invoice=invoice, position=position, product=product, selling_option=option,
             description=description or product.name, package_size=option.label,
-            catalogue_price=option.price, quantity=priced.entered_quantity,
+            catalogue_price=catalogue_price, quantity=priced.entered_quantity,
             unit=priced.unit, unit_plural=priced.unit_plural, pricing_method=priced.pricing_method,
             price_unit=priced.price_unit, conversion_factor=priced.conversion_factor,
             price_quantity=priced.price_quantity, base_quantity=priced.base_quantity, base_unit=priced.base_unit,
@@ -139,18 +141,23 @@ def _save_lines(lines: list[InvoiceLine], amending: bool = False) -> None:
 
 # --- Drafts --------------------------------------------------------------------------
 
-def create_draft(*, user, customer=None, customer_name: str = "", issue_date=None, **fields) -> Invoice:
+def create_draft(*, user, customer=None, customer_name: str = "", issue_date=None, customer_kind=None,
+                 **fields) -> Invoice:
     """New draft pre-filled from Business Settings. Pass `customer` for a saved
-    customer, or `customer_name` (+ other customer_* fields) for a one-time one."""
+    customer, or `customer_name` (+ other customer_* fields) for a one-time one.
+    The customer type (the saved customer's, unless `customer_kind` is given)
+    picks the payment terms and the prices of lines added later."""
     settings = BusinessSettings.load()
     issue_date = issue_date or timezone.localdate()
+    kind = customer_kind or (customer.kind if customer is not None else Customer.Kind.INDIVIDUAL)
+    days, terms = settings.payment_defaults(kind)
     invoice = Invoice(
-        created_by=user, issue_date=issue_date,
-        payment_terms=settings.default_payment_terms, notes=settings.default_invoice_notes,
+        created_by=user, issue_date=issue_date, customer_kind=kind,
+        payment_terms=terms, notes=settings.default_invoice_notes,
     )
     _apply_settings(invoice, settings)
-    if settings.default_payment_terms_days is not None:
-        invoice.due_date = issue_date + datetime.timedelta(days=settings.default_payment_terms_days)
+    if days is not None:
+        invoice.due_date = issue_date + datetime.timedelta(days=days)
     if customer is not None:
         _copy_customer(invoice, customer)
     else:
@@ -214,13 +221,13 @@ def _apply_settings(invoice: Invoice, settings: BusinessSettings) -> None:
     invoice.prices_include_tax = settings.prices_include_tax
 
 
-def new_draft_initial(today=None) -> dict:
-    """Starting values for the 'new invoice' form, from Settings."""
+def new_draft_initial(today=None, customer_kind: str = Customer.Kind.INDIVIDUAL) -> dict:
+    """Starting values for the 'new invoice' form, from Settings, for this type of customer."""
     settings = BusinessSettings.load()
     today = today or timezone.localdate()
-    due = today + datetime.timedelta(days=settings.default_payment_terms_days) \
-        if settings.default_payment_terms_days is not None else None
-    return {"issue_date": today, "due_date": due, "payment_terms": settings.default_payment_terms,
+    days, terms = settings.payment_defaults(customer_kind)
+    due = today + datetime.timedelta(days=days) if days is not None else None
+    return {"issue_date": today, "due_date": due, "payment_terms": terms, "customer_kind": customer_kind,
             "notes": settings.default_invoice_notes}
 
 
@@ -236,6 +243,9 @@ def _apply_header(invoice: Invoice, header: dict) -> None:
         invoice.customer_email = header.get("customer_email", "").strip()
         invoice.customer_address = header.get("customer_address", "").strip()
         invoice.customer_tax_pin = header.get("customer_tax_pin", "").strip().upper()
+    # The type can be changed on the invoice; otherwise it follows the saved customer.
+    invoice.customer_kind = header.get("customer_kind") or (
+        customer.kind if customer is not None else Customer.Kind.INDIVIDUAL)
     if not invoice.customer_name:
         raise ValidationError("The invoice needs a customer name.")
     invoice.issue_date = header["issue_date"]
@@ -362,7 +372,7 @@ def _new_draft_like(source: Invoice, user, *, replaces=None) -> Invoice:
     )
     _apply_settings(draft, BusinessSettings.load())
     for f in ("customer", "customer_name", "customer_contact_person", "customer_phone", "customer_email",
-              "customer_address", "customer_tax_pin"):
+              "customer_address", "customer_tax_pin", "customer_kind"):
         setattr(draft, f, getattr(source, f))
     return draft
 
@@ -390,14 +400,16 @@ def duplicate_invoice(source: Invoice, user) -> Invoice:
     """New draft with the same customer and lines (for repeat orders). Lines
     whose selling option is still active are re-priced at today's price; others
     keep the price from the source invoice."""
-    initial = new_draft_initial()
     draft = _new_draft_like(source, user)
-    draft.issue_date, draft.due_date = initial["issue_date"], initial["due_date"]
-    draft.invoice_discount = Decimal("0.00")
     if source.customer and source.customer.is_active:
         _copy_customer(draft, source.customer)  # latest details from the customer record
+        draft.customer_kind = source.customer.kind
     elif source.customer:
         draft.customer = None
+    draft.customer_kind = draft.customer_kind or Customer.Kind.INDIVIDUAL
+    initial = new_draft_initial(customer_kind=draft.customer_kind)
+    draft.issue_date, draft.due_date = initial["issue_date"], initial["due_date"]
+    draft.invoice_discount = Decimal("0.00")
     draft.save()
     new_lines = []
     for line in source.lines.select_related("selling_option__product", "selling_option__package_unit",
@@ -427,7 +439,7 @@ def duplicate_invoice(source: Invoice, user) -> Invoice:
 
 def invoice_snapshot(invoice: Invoice) -> dict:
     header = ["number", "status", "customer_id", "customer_name", "customer_contact_person", "customer_phone",
-              "customer_email", "customer_address", "customer_tax_pin", "issue_date", "due_date", "currency",
+              "customer_email", "customer_address", "customer_tax_pin", "customer_kind", "issue_date", "due_date", "currency",
               "payment_terms", "notes", "invoice_discount", "tax_label", "tax_rate", "prices_include_tax",
               "subtotal", "tax_total", "total", "business_snapshot", "revision"]
     data = {}

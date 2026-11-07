@@ -231,6 +231,10 @@ class SellingOption(TimeStampedModel):
         help_text="For measured prices: the price is per this unit (L, kg…).",
     )
     price = models.DecimalField(max_digits=12, decimal_places=2, validators=NON_NEGATIVE)
+    institution_price = models.DecimalField(
+        max_digits=12, decimal_places=2, null=True, blank=True, validators=NON_NEGATIVE,
+        help_text="What institutions pay. Blank: they pay the selling price.",
+    )
     cost_price = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True, validators=NON_NEGATIVE)
     is_default = models.BooleanField(default=False, help_text="Pre-selected when this product is added to an invoice.")
     is_active = models.BooleanField(default=True)
@@ -242,6 +246,8 @@ class SellingOption(TimeStampedModel):
             models.CheckConstraint(condition=Q(price__gte=0), name="selling_option_price_gte_0"),
             models.CheckConstraint(condition=Q(cost_price__isnull=True) | Q(cost_price__gte=0),
                                    name="selling_option_cost_gte_0"),
+            models.CheckConstraint(condition=Q(institution_price__isnull=True) | Q(institution_price__gte=0),
+                                   name="selling_option_institution_price_gte_0"),
             models.CheckConstraint(
                 condition=~Q(method="package") | (Q(package_unit__isnull=False) & Q(content_quantity__gt=0)),
                 name="selling_option_package_complete",

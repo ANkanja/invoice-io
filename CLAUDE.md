@@ -18,7 +18,7 @@ built, and known limitations. `README.md` has setup and the business rules.
 
 ## Commands (PowerShell, venv active)
 - Run: `python manage.py runserver`
-- Tests: `python manage.py test` (all must pass; 223 now)
+- Tests: `python manage.py test` (all must pass; 243 now)
 - Front end: `npm run typecheck`, `npm run build`
 - Migrations: `python manage.py makemigrations --check --dry-run` must be clean.
 

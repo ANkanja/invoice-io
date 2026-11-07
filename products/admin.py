@@ -39,7 +39,7 @@ class UnitAdmin(admin.ModelAdmin):
 class SellingOptionInline(admin.TabularInline):
     model = SellingOption
     extra = 0
-    fields = ("label", "method", "package_unit", "content_quantity", "price_unit", "price", "cost_price", "is_default", "is_active")
+    fields = ("label", "method", "package_unit", "content_quantity", "price_unit", "price", "institution_price", "cost_price", "is_default", "is_active")
     can_delete = False
 
 

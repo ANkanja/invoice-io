@@ -2,7 +2,7 @@
 {% load formatting %}
 {% block title %}{{ customer }}{% endblock %}
 {% block page_title %}{{ customer.name }}{% endblock %}
-{% block page_intro %}<p class="lead-text">{% if customer.kind == "organization" %}Organisation{% else %}Individual{% endif %}{% if not customer.is_active %} <span class="badge text-bg-secondary align-middle">Archived</span>{% endif %}</p>{% endblock %}
+{% block page_intro %}<p class="lead-text">{{ customer.get_kind_display }}{% if not customer.is_active %} <span class="badge text-bg-secondary align-middle">Archived</span>{% endif %}</p>{% endblock %}
 {% block page_actions %}
   <a class="btn btn-outline-primary" href="{% url 'customers:list' %}">All customers</a>
   {% if perms.customers.change_customer %}<a class="btn btn-outline-primary" href="{% url 'customers:edit' customer.pk %}"><i class="bi bi-pencil" aria-hidden="true"></i> Edit</a>{% endif %}

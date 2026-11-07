@@ -16,7 +16,7 @@ from core.forms import BootstrapFormMixin
 from customers.models import Customer
 from core.money import quantize
 from products.models import Product, SellingOption, Unit
-from products.pricing import resolve_quantity
+from products.pricing import price_for, resolve_quantity
 
 from .models import Invoice
 
@@ -37,6 +37,11 @@ class InvoiceHeaderForm(BootstrapFormMixin, forms.Form):
     customer_address = forms.CharField(required=False, label="Address",
                                        widget=forms.Textarea(attrs={"rows": 2}))
     customer_tax_pin = forms.CharField(required=False, max_length=30, label="KRA PIN")
+    customer_kind = forms.ChoiceField(
+        choices=Customer.Kind.choices, initial=Customer.Kind.INDIVIDUAL, label="Customer type", required=False,
+        widget=forms.RadioSelect(attrs={"data-customer-kind": ""}),
+        help_text="Sets the prices and payment terms. Filled in from the saved customer; you can change it.",
+    )
 
     issue_date = forms.DateField(widget=forms.DateInput(attrs={"type": "date"}, format="%Y-%m-%d"))
     due_date = forms.DateField(required=False, widget=forms.DateInput(attrs={"type": "date"}, format="%Y-%m-%d"),
@@ -55,6 +60,7 @@ class InvoiceHeaderForm(BootstrapFormMixin, forms.Form):
         self.fields["customer"].queryset = customers.distinct().order_by("name")
         self.fields["customer"].widget.attrs["data-customer-select"] = ""
         self._apply_bootstrap()
+        self.fields["customer_kind"].widget.attrs["class"] = "form-check-input"
 
     def clean(self):
         data = super().clean()
@@ -87,8 +93,10 @@ class InvoiceLineForm(forms.Form):
     line_discount = forms.DecimalField(required=False, min_value=Decimal("0"), **MONEY, label="Discount",
                                        widget=forms.NumberInput(attrs={**NUM_ATTRS, "data-line-discount": ""}))
 
-    def __init__(self, *args, products=None, options=None, units=None, **kwargs):
+    def __init__(self, *args, products=None, options=None, units=None, customer_kind=Customer.Kind.INDIVIDUAL,
+                 **kwargs):
         super().__init__(*args, **kwargs)
+        self.customer_kind = customer_kind
         if products is not None:
             self.fields["product"].queryset = products
         if options is not None:
@@ -132,7 +140,7 @@ class InvoiceLineForm(forms.Form):
             except ValidationError as exc:
                 self.add_error("entered_unit" if unit is not None else "quantity", exc.messages[0])
                 return data
-            gross = quantize(priced.price_quantity * (option.price if price is None else price))
+            gross = quantize(priced.price_quantity * (price_for(option, self.customer_kind) if price is None else price))
         else:
             if not (data.get("description") or "").strip():
                 self.add_error("description", "Describe the item, or choose a product.")
@@ -151,9 +159,10 @@ class BaseLineFormSet(forms.BaseFormSet):
     """Every row is optional (fully blank rows are ignored), but at least one
     real line is required. Rows are renumbered in the browser when removed."""
 
-    def __init__(self, *args, products=None, options=None, **kwargs):
+    def __init__(self, *args, products=None, options=None, customer_kind=Customer.Kind.INDIVIDUAL, **kwargs):
         self.products = products
         self.options = options
+        self.customer_kind = customer_kind
         self.units = {u.code: u for u in Unit.objects.all()}
         super().__init__(*args, **kwargs)
 
@@ -163,7 +172,7 @@ class BaseLineFormSet(forms.BaseFormSet):
     def get_form_kwargs(self, index):
         # Also used for the blank row template (empty_form), so new rows get the same product list.
         return {**super().get_form_kwargs(index), "products": self.products, "options": self.options,
-                "units": self.units}
+                "units": self.units, "customer_kind": self.customer_kind}
 
     def clean(self):
         super().clean()
@@ -176,13 +185,15 @@ class BaseLineFormSet(forms.BaseFormSet):
         return [f.cleaned_data for f in self.forms if f.has_changed() and f.cleaned_data]
 
 
-def make_line_formset(*, data=None, initial=None, products=None, options=None):
+def make_line_formset(*, data=None, initial=None, products=None, options=None,
+                      customer_kind=Customer.Kind.INDIVIDUAL):
     initial = initial or []
     FormSet = forms.formset_factory(
         InvoiceLineForm, formset=BaseLineFormSet, extra=max(len(initial), 1),
         max_num=MAX_LINES, validate_max=True, absolute_max=MAX_LINES,
     )
-    return FormSet(data=data, initial=initial, prefix="lines", products=products, options=options)
+    return FormSet(data=data, initial=initial, prefix="lines", products=products, options=options,
+                   customer_kind=customer_kind)
 
 
 def products_for(invoice: Invoice | None):

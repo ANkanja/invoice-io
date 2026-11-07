@@ -9,6 +9,8 @@ Examples (stock unit ml):
 * "per litre" measure, KES 250, 2.5 entered in L     → factor 1;     price qty 2.5; stock 2,500 ml; KES 625
 
 Packs are never pro-rated: a 500 ml bottle costs its own pack price.
+
+Institutions pay the option's institution price when one is set (price_for).
 """
 
 from dataclasses import dataclass
@@ -21,6 +23,7 @@ from core.money import to_decimal
 from .models import SellingOption, Unit
 from .units import IncompatibleUnits, conversion_factor
 
+INSTITUTION = "organization"  # customers.Customer.Kind.INSTITUTION
 STOCK_PLACES = Decimal("0.001")
 PRICE_QTY_PLACES = Decimal("0.000001")
 
@@ -110,3 +113,11 @@ def to_stock_units(product, quantity, choice: str) -> tuple[Decimal, str]:
             name = label.split(" (")[0]
             return _exact(qty * factor, STOCK_PLACES, "quantity"), name
     raise IncompatibleUnits("Choose a unit that matches how this product's stock is counted.")
+
+
+def price_for(option: SellingOption, customer_kind: str) -> Decimal:
+    """The catalogue price this type of customer pays for the option: the
+    institution price for institutions when one is set, otherwise the selling price."""
+    if customer_kind == INSTITUTION and option.institution_price is not None:
+        return option.institution_price
+    return option.price

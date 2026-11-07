@@ -12,6 +12,10 @@
  *   everything on save.
  * - Enter moves to the next box instead of submitting; at the end of the last
  *   line it adds a new line.
+ * - Customer type (individual / institution): picking a saved customer sets it;
+ *   it can be changed by hand. Changing it switches lines still at the
+ *   automatic price to that type's price (typed prices are kept) and the
+ *   payment terms and due date, if they were still the automatic ones.
  * - Warns before leaving the page with unsaved changes.
  */
 import { type Ratio, ZERO, add, centsFor, compare, formatRatio, mul, parseDecimal } from "./lib/decimal";
@@ -23,6 +27,7 @@ interface OptionInfo {
   label: string;
   method: "package" | "measure";
   price: string;
+  institutionPrice: string; // "" when institutions pay the normal price
   per: string; // "per bottle", "per L"
   isDefault: boolean;
   active: boolean;
@@ -48,12 +53,19 @@ interface CustomerInfo {
   phone: string;
   email: string;
   address: string;
+  kind: string;
+}
+
+interface PaymentDefault {
+  days: number | null;
+  terms: string;
 }
 
 interface EditorData {
   products: ProductInfo[];
   units: UnitTable;
   customers: Record<string, CustomerInfo>;
+  paymentDefaults: Record<string, PaymentDefault>;
   taxRate: string;
   taxLabel: string;
   pricesIncludeTax: boolean;
@@ -62,6 +74,7 @@ interface EditorData {
 }
 
 const PREFIX = "lines";
+const INSTITUTION = "organization"; // stored value of Customer.Kind.INSTITUTION
 const FIELD_PATTERN = new RegExp(`${PREFIX}-(\\d+|__prefix__)-`, "g");
 
 function readData(): EditorData | null {
@@ -95,6 +108,15 @@ function setup(
   const products = new Map(data.products.map((p) => [String(p.id), p]));
   const money = (cents: bigint): string => formatCents(cents, data.currency);
   let dirty = false;
+
+  // ---- customer type and the prices that follow from it ------------------------------
+  const kindInputs = Array.from(form.querySelectorAll<HTMLInputElement>('input[name="customer_kind"]'));
+  const currentKind = (): string => kindInputs.find((el) => el.checked)?.value ?? "individual";
+  /** The price this type of customer pays (mirrors products.pricing.price_for). */
+  const autoPrice = (option: OptionInfo, kind: string = currentKind()): string =>
+    kind === INSTITUTION && option.institutionPrice ? option.institutionPrice : option.price;
+  const optionText = (option: OptionInfo): string =>
+    `${option.label} · ${money(parseHundredths(autoPrice(option)) ?? 0n)}`;
 
   // ---- rows ----------------------------------------------------------------
   const rows = (): HTMLElement[] => Array.from(container.querySelectorAll<HTMLElement>("[data-line]"));
@@ -184,7 +206,7 @@ function setup(
         const fallback = shown.find((o) => o.isDefault) ?? shown[0];
         fillSelect(
           optionSelect,
-          shown.map((o) => [String(o.id), `${o.label} · ${money(parseHundredths(o.price) ?? 0n)}`]),
+          shown.map((o) => [String(o.id), optionText(o)]),
           fromUser ? String(fallback?.id ?? "") : current || String(fallback?.id ?? ""),
         );
         optionWrap?.toggleAttribute("hidden", shown.length === 0);
@@ -222,7 +244,7 @@ function setup(
       }
       delete unitSelect.dataset.initial;
     }
-    if (option && fromUser && price) price.value = option.price;
+    if (option && fromUser && price) price.value = autoPrice(option);
     if (per) {
       const freeUnit = input(row, "free_unit")?.value.trim();
       per.textContent = option ? option.per : freeUnit ? `per ${freeUnit}` : "";
@@ -285,8 +307,10 @@ function setup(
     }
     const option = optionOf(row);
     const price = input(row, "unit_price")?.value ?? "";
-    if (option && price && parseHundredths(price) !== parseHundredths(option.price)) {
-      parts.push(`usual price ${money(parseHundredths(option.price) ?? 0n)} ${option.per}`);
+    const usual = option ? autoPrice(option) : "";
+    if (option && price && parseHundredths(price) !== parseHundredths(usual)) {
+      const which = currentKind() === INSTITUTION && option.institutionPrice ? "institution" : "usual";
+      parts.push(`${which} price ${money(parseHundredths(usual) ?? 0n)} ${option.per}`);
     }
     hint.textContent = parts.join(" · ");
   }
@@ -319,7 +343,8 @@ function setup(
       if (quantities?.base && product?.tracked) {
         needed.set(product.id, add(needed.get(product.id) ?? ZERO, quantities.base));
       }
-      const price = parseHundredths(priceText || (optionOf(row)?.price ?? ""));
+      const lineOption = optionOf(row);
+      const price = parseHundredths(priceText || (lineOption ? autoPrice(lineOption) : ""));
       const disc = discText ? parseHundredths(discText) : 0n;
       if (!quantities || price === null || disc === null || price < 0n || disc < 0n) {
         if (out) out.textContent = "—";
@@ -426,8 +451,62 @@ function setup(
       if (!summary.childElementCount) summary.textContent = "No contact details saved for this customer.";
     }
   }
-  customerSelect?.addEventListener("change", syncCustomer);
+  customerSelect?.addEventListener("change", () => {
+    syncCustomer();
+    const info = data.customers[customerSelect.value];
+    const radio = info && kindInputs.find((el) => el.value === info.kind);
+    if (radio && !radio.checked) {
+      radio.checked = true;
+      applyKind();
+    }
+  });
   syncCustomer();
+
+  // ---- switching customer type ---------------------------------------------------------
+  /** "2026-11-07" plus a number of days; "" when there is no due date. */
+  function addDays(isoDate: string, days: number | null): string {
+    const parts = isoDate.split("-").map(Number);
+    const [y, m, d] = parts;
+    if (days === null || parts.length !== 3 || y === undefined || m === undefined || d === undefined) return "";
+    if ([y, m, d].some((n) => Number.isNaN(n))) return "";
+    return new Date(Date.UTC(y, m - 1, d + days)).toISOString().slice(0, 10);
+  }
+
+  function applyPaymentDefaults(before: string, after: string): void {
+    const from = data.paymentDefaults[before];
+    const to = data.paymentDefaults[after];
+    if (!from || !to) return;
+    const terms = form.querySelector<HTMLTextAreaElement>('[name="payment_terms"]');
+    if (terms && terms.value.trim() === from.terms.trim()) terms.value = to.terms;
+    const issue = form.querySelector<HTMLInputElement>('[name="issue_date"]');
+    const due = form.querySelector<HTMLInputElement>('[name="due_date"]');
+    if (issue && due && due.value === addDays(issue.value, from.days)) due.value = addDays(issue.value, to.days);
+  }
+
+  let shownKind = currentKind();
+  function applyKind(): void {
+    const before = shownKind;
+    const after = currentKind();
+    if (before === after) return;
+    shownKind = after;
+    for (const row of rows()) {
+      const option = optionOf(row);
+      const price = input(row, "unit_price");
+      // Only prices still at the automatic value follow the type; typed prices stay.
+      if (option && price && (!price.value || parseHundredths(price.value) === parseHundredths(autoPrice(option, before)))) {
+        price.value = autoPrice(option, after);
+      }
+      const product = productOf(row);
+      select(row, "selling_option")?.querySelectorAll("option").forEach((el) => {
+        const match = product?.options.find((o) => String(o.id) === el.value);
+        if (match) el.textContent = optionText(match);
+      });
+    }
+    applyPaymentDefaults(before, after);
+    dirty = true;
+    recalc();
+  }
+  kindInputs.forEach((el) => el.addEventListener("change", applyKind));
 
   // ---- wire everything --------------------------------------------------------------
   rows().forEach(wireRow);

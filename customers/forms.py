@@ -15,7 +15,7 @@ class CustomerForm(BootstrapFormMixin, forms.ModelForm):
             "billing_address": "Address for invoices",
         }
         help_texts = {
-            "contact_person": "For organisations: who you deal with, e.g. the school bursar.",
+            "contact_person": "For institutions: who you deal with, e.g. the school bursar.",
             "tax_pin": "Optional. Printed on invoices if entered.",
             "notes": "Private notes, never printed.",
         }

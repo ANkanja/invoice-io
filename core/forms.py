@@ -33,7 +33,9 @@ class BusinessSettingsForm(BootstrapFormMixin, forms.ModelForm):
         fields = [
             "name", "logo", "phone", "email", "address", "kra_pin", "registration_number",
             "currency", "invoice_prefix", "invoice_number_padding", "reset_numbering_yearly",
-            "default_payment_terms_days", "default_payment_terms", "default_invoice_notes", "payment_instructions",
+            "default_payment_terms_days", "default_payment_terms",
+            "institution_payment_terms_days", "institution_payment_terms",
+            "default_invoice_notes", "payment_instructions",
             "tax_enabled", "tax_label", "tax_rate", "prices_include_tax",
             "allow_negative_stock",
         ]
@@ -41,16 +43,21 @@ class BusinessSettingsForm(BootstrapFormMixin, forms.ModelForm):
             "logo": forms.FileInput(attrs={"accept": "image/png,image/jpeg,image/webp", "data-image-preview": "logo-preview"}),
             "address": forms.Textarea(attrs={"rows": 3}),
             "default_payment_terms": forms.Textarea(attrs={"rows": 2}),
+            "institution_payment_terms": forms.Textarea(attrs={"rows": 2}),
             "default_invoice_notes": forms.Textarea(attrs={"rows": 2}),
             "payment_instructions": forms.Textarea(attrs={"rows": 3}),
         }
         labels = {
             "invoice_number_padding": "Digits in invoice number",
-            "default_payment_terms_days": "Payment due after (days)",
+            "default_payment_terms_days": "Individuals: payment due after (days)",
+            "default_payment_terms": "Individuals: payment terms",
+            "institution_payment_terms_days": "Institutions: payment due after (days)",
+            "institution_payment_terms": "Institutions: payment terms",
             "allow_negative_stock": "Allow issuing invoices when stock would go below zero",
         }
 
-    WIDE_FIELDS = ["address", "default_payment_terms", "default_invoice_notes", "payment_instructions"]
+    WIDE_FIELDS = ["address", "default_payment_terms", "institution_payment_terms", "default_invoice_notes",
+                   "payment_instructions"]
 
     # Groups shown as sections on the settings page.
     SECTIONS = [
@@ -58,7 +65,10 @@ class BusinessSettingsForm(BootstrapFormMixin, forms.ModelForm):
             "name", "logo", "phone", "email", "address", "kra_pin", "registration_number"]),
         ("Invoices", "Numbering and the defaults every new invoice starts with.", [
             "currency", "invoice_prefix", "invoice_number_padding", "reset_numbering_yearly",
-            "default_payment_terms_days", "default_payment_terms", "default_invoice_notes", "payment_instructions"]),
+            "default_invoice_notes", "payment_instructions"]),
+        ("Payment terms", "What new invoices start with for each type of customer. You can still change them on any invoice.", [
+            "default_payment_terms_days", "default_payment_terms",
+            "institution_payment_terms_days", "institution_payment_terms"]),
         ("Tax", "Leave tax off unless you are registered to charge it.", [
             "tax_enabled", "tax_label", "tax_rate", "prices_include_tax"]),
         ("Stock", "How issuing an invoice treats stock levels.", ["allow_negative_stock"]),
