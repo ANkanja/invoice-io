@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Poster calendar{% endblock %}
+{% block page_title %}Poster calendar{% endblock %}
+{% block page_actions %}
+  {% if perms.posters.add_occasion %}<a class="btn btn-primary" href="{% url 'posters:occasion_create' %}"><i class="bi bi-plus-lg" aria-hidden="true"></i> Add occasion</a>{% endif %}
+{% endblock %}
+
+{% block content %}
+{% include "posters/_nav.html" with active="calendar" %}
+<p class="small text-secondary">Health days, holidays and your own events. The next six weeks show on the dashboard and the Posters page with a <strong>Make poster</strong> button that fills in the headline, message and date.</p>
+{% if perms.posters.add_occasion %}
+<form method="post" action="{% url 'posters:calendar_starters' %}" class="mb-3">{% csrf_token %}<button class="btn btn-outline-primary btn-sm" type="submit">Add common health days and Kenyan holidays</button>
+  <span class="small text-secondary ms-1">Adds only the ones you don't have yet. Check the dates; add moving holidays such as Easter yourself, with the year.</span></form>
+{% endif %}
+<div class="panel p-0">
+  {% if has_any %}
+  <div class="table-responsive">
+    <table class="table align-middle table-hover mb-0 list-table">
+      <thead><tr><th scope="col">Occasion</th><th scope="col">Next</th><th scope="col" class="d-none d-md-table-cell">Headline</th></tr></thead>
+      <tbody>
+        {% for occasion, when, days in rows %}
+        <tr class="{% if not occasion.is_active %}text-secondary{% endif %}">
+          <td>{% if perms.posters.change_occasion %}<a class="row-link fw-medium" href="{% url 'posters:occasion_edit' occasion.pk %}">{{ occasion.name }}</a>{% else %}{{ occasion.name }}{% endif %}
+            <div class="small text-secondary">{{ occasion.date_text }}{% if occasion.year %} {{ occasion.year }} only{% else %}, every year{% endif %}{% if not occasion.is_active %} · hidden{% endif %}</div></td>
+          <td class="text-nowrap">{% if when %}{{ when|date:"j M Y" }}<div class="small text-secondary">{% if days == 0 %}today{% elif days == 1 %}tomorrow{% else %}in {{ days }} days{% endif %}</div>{% else %}<span class="text-secondary">Passed</span>{% endif %}</td>
+          <td class="d-none d-md-table-cell">{{ occasion.headline|default:"—" }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state"><i class="bi bi-calendar-event" aria-hidden="true"></i><p>No occasions yet.</p></div>
+  {% endif %}
+</div>
+{% endblock %}

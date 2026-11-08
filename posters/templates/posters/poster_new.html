@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}New poster{% endblock %}
+{% block page_title %}New poster{% endblock %}
+{% block page_intro %}<p class="lead-text">{% if occasion %}For <strong>{{ occasion.name }}</strong> ({{ occasion.date_text }}). {% endif %}Choose a design. You'll type the text next.</p>{% endblock %}
+
+{% block content %}
+{% include "posters/_nav.html" with active="posters" %}
+{% if designs %}
+<div class="design-grid">
+  {% for template, version in designs %}
+  <form method="post" action="{% url 'posters:create' %}" class="design-card">
+    {% csrf_token %}
+    <input type="hidden" name="template" value="{{ template.pk }}">
+    {% if occasion %}<input type="hidden" name="occasion" value="{{ occasion.pk }}">{% endif %}
+    <button type="submit" class="design-pick" aria-label="Use {{ template.name }}">
+      <img src="{% url 'posters:design_sample' template.pk %}?w=420" alt="" loading="lazy" width="{{ version.width }}" height="{{ version.height }}">
+    </button>
+    <div class="design-meta"><span class="fw-medium">{{ template.name }}</span><span class="small text-secondary">{{ version.size_label }}</span></div>
+  </form>
+  {% endfor %}
+</div>
+{% else %}
+<div class="panel empty-state">
+  <p class="mb-3">There are no designs with boxes yet.</p>
+  {% if perms.posters.add_postertemplate and not has_starters %}
+  <form method="post" action="{% url 'posters:starter_designs' %}" class="d-inline">{% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"><button class="btn btn-primary" type="submit">Add the starter designs</button></form>
+  {% endif %}
+  {% if perms.posters.view_postertemplate %}<a class="btn btn-outline-primary ms-1" href="{% url 'posters:designs' %}">Go to designs</a>{% endif %}
+</div>
+{% endif %}
+{% endblock %}

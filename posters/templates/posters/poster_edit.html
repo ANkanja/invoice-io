@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}{{ poster.name }}{% endblock %}
+{% block page_title %}{{ poster.name }}{% endblock %}
+{% block page_intro %}<p class="lead-text">Type your text; the preview updates as you go. Export makes the finished picture to send or print.</p>{% endblock %}
+{% block head %}<script type="module" src="{% static 'dist/poster-editor.js' %}"></script>{% endblock %}
+
+{% block content %}
+{% include "posters/_nav.html" with active="posters" %}
+<form method="post" novalidate data-poster-form data-preview-url="{{ preview_url }}">
+  {% csrf_token %}
+  {% if form.non_field_errors %}<div class="alert alert-danger">{% for e in form.non_field_errors %}{{ e }}{% endfor %}</div>{% endif %}
+  <div class="row g-4">
+    <div class="col-lg-5 order-lg-2">
+      <section class="panel poster-preview-panel" aria-labelledby="preview-title">
+        <h2 id="preview-title" class="visually-hidden">Preview</h2>
+        <div class="poster-preview" style="aspect-ratio: {{ version.width }} / {{ version.height }}">
+          <img data-poster-preview alt="Poster preview" src="" hidden>
+          <div class="poster-preview-wait" data-poster-wait>Drawing preview…</div>
+        </div>
+        <div class="alert alert-warning small mt-2 mb-0" data-poster-warnings role="status" hidden></div>
+        <p class="small text-secondary mt-2 mb-0">{{ version.size_label }} · the export is full size.</p>
+      </section>
+    </div>
+    <div class="col-lg-7 order-lg-1">
+      <section class="panel" aria-labelledby="text-title">
+        <h2 id="text-title">Text</h2>
+        {% for field in form.text_bound_fields %}{% include "partials/_field.html" %}{% endfor %}
+        <p class="small text-secondary mb-0">Your logo comes from Settings.</p>
+      </section>
+      <section class="panel" aria-labelledby="poster-title">
+        <h2 id="poster-title">Poster</h2>
+        <div class="row g-x-4">
+          <div class="col-md-6">{% include "partials/_field.html" with field=form.name %}</div>
+          <div class="col-md-6">{% include "partials/_field.html" with field=form.template %}</div>
+        </div>
+      </section>
+    </div>
+  </div>
+  <div class="sticky-actions page-actions d-flex flex-wrap gap-2">
+    {% if perms.posters.add_posterexport %}<button type="submit" name="export" value="1" class="btn btn-primary px-4" data-busy-text="Exporting…"><i class="bi bi-download" aria-hidden="true"></i> Save and export</button>{% endif %}
+    <button type="submit" class="btn btn-outline-primary" data-busy-text="Saving…">Save</button>
+    <a class="btn btn-link" href="{% url 'posters:list' %}">Back to posters</a>
+  </div>
+</form>
+
+{% if exports %}
+<section class="panel mt-4" aria-labelledby="exports-title">
+  <h2 id="exports-title">Exports</h2>
+  <ul class="export-list">
+    {% for e in exports %}
+    <li><a href="{% url 'posters:export' e.pk %}">#{{ e.export_no }}</a> · {{ e.created_at|date:"j M Y, H:i" }} by {{ e.created_by }}</li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}
+{% endblock %}

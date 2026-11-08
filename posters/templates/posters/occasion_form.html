@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}{% if occasion %}Edit {{ occasion.name }}{% else %}Add occasion{% endif %}{% endblock %}
+{% block page_title %}{% if occasion %}Edit occasion{% else %}Add occasion{% endif %}{% endblock %}
+
+{% block content %}
+{% include "posters/_nav.html" with active="calendar" %}
+<form method="post" class="panel" novalidate>
+  {% csrf_token %}
+  {% if form.non_field_errors %}<div class="alert alert-danger">{% for e in form.non_field_errors %}{{ e }}{% endfor %}</div>{% endif %}
+  {% include "partials/_field.html" with field=form.name %}
+  <div class="row g-x-4">
+    <div class="col-4 col-md-3">{% include "partials/_field.html" with field=form.day %}</div>
+    <div class="col-8 col-md-5">{% include "partials/_field.html" with field=form.month %}</div>
+    <div class="col-md-4">{% include "partials/_field.html" with field=form.year %}</div>
+  </div>
+  {% include "partials/_field.html" with field=form.headline %}
+  {% include "partials/_field.html" with field=form.message %}
+  {% include "partials/_field.html" with field=form.is_active %}
+  <div class="d-flex flex-wrap gap-2">
+    <button type="submit" class="btn btn-primary px-4" data-busy-text="Saving…">Save</button>
+    <a class="btn btn-link" href="{% url 'posters:calendar' %}">Cancel</a>
+  </div>
+</form>
+{% endblock %}

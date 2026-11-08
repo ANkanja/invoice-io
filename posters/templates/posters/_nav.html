@@ -1,0 +1,6 @@
+<nav class="subnav" aria-label="Poster sections">
+  <a class="{% if active == 'posters' %}active{% endif %}" href="{% url 'posters:list' %}" {% if active == 'posters' %}aria-current="page"{% endif %}>Posters</a>
+  {% if perms.posters.view_occasion %}<a class="{% if active == 'calendar' %}active{% endif %}" href="{% url 'posters:calendar' %}" {% if active == 'calendar' %}aria-current="page"{% endif %}>Calendar</a>{% endif %}
+  {% if perms.posters.view_postertemplate %}<a class="{% if active == 'designs' %}active{% endif %}" href="{% url 'posters:designs' %}" {% if active == 'designs' %}aria-current="page"{% endif %}>Designs</a>{% endif %}
+  {% if perms.posters.view_fontasset %}<a class="{% if active == 'fonts' %}active{% endif %}" href="{% url 'posters:fonts' %}" {% if active == 'fonts' %}aria-current="page"{% endif %}>Fonts</a>{% endif %}
+</nav>

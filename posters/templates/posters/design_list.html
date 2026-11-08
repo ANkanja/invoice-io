@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Poster designs{% endblock %}
+{% block page_title %}Poster designs{% endblock %}
+{% block page_actions %}
+  {% if perms.posters.add_postertemplate %}<a class="btn btn-primary" href="{% url 'posters:design_create' %}"><i class="bi bi-upload" aria-hidden="true"></i> Upload a design</a>{% endif %}
+{% endblock %}
+
+{% block content %}
+{% include "posters/_nav.html" with active="designs" %}
+<p class="small text-secondary">Design your poster in Canva (or similar) leaving empty spaces for the text, download it as PNG or JPG, upload it here, then draw boxes where the headline, message, date, logo and contacts go.</p>
+{% if not has_starters and perms.posters.add_postertemplate %}
+<form method="post" action="{% url 'posters:starter_designs' %}" class="mb-3">{% csrf_token %}<input type="hidden" name="next" value="{% url 'posters:designs' %}"><button class="btn btn-outline-primary btn-sm" type="submit">Add the starter designs</button></form>
+{% endif %}
+{% if designs %}
+<div class="design-grid">
+  {% for template, version in designs %}
+  <div class="design-card{% if not template.is_active %} is-inactive{% endif %}">
+    <a class="design-pick" href="{% url 'posters:design_edit' template.pk %}" aria-label="Edit {{ template.name }}">
+      {% if version.fields.all %}<img src="{% url 'posters:design_sample' template.pk %}?w=420" alt="" loading="lazy" width="{{ version.width }}" height="{{ version.height }}">
+      {% else %}<img src="{{ version.background.url }}" alt="" loading="lazy" width="{{ version.width }}" height="{{ version.height }}">{% endif %}
+    </a>
+    <div class="design-meta">
+      <span class="fw-medium">{{ template.name }}{% if not template.is_active %} <span class="badge text-bg-secondary">Archived</span>{% endif %}</span>
+      <span class="small text-secondary">{{ version.size_label }} · version {{ version.version_no }} · {{ version.fields.all|length }} box{{ version.fields.all|length|pluralize:"es" }}{% if not version.fields.all %} <span class="text-danger">(add boxes to use it)</span>{% endif %}</span>
+      {% if perms.posters.change_postertemplate %}
+      <div class="d-flex gap-2 mt-1">
+        <a class="small" href="{% url 'posters:design_edit' template.pk %}">Edit boxes</a>
+        <form method="post" action="{% if template.is_active %}{% url 'posters:design_archive' template.pk %}{% else %}{% url 'posters:design_restore' template.pk %}{% endif %}">{% csrf_token %}<button class="btn btn-link btn-sm p-0 small" type="submit">{% if template.is_active %}Archive{% else %}Restore{% endif %}</button></form>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="panel empty-state"><p>No designs yet.</p></div>
+{% endif %}
+{% endblock %}

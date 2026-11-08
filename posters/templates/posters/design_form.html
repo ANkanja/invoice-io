@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Upload a design{% endblock %}
+{% block page_title %}Upload a design{% endblock %}
+
+{% block content %}
+{% include "posters/_nav.html" with active="designs" %}
+<form method="post" enctype="multipart/form-data" class="panel" novalidate>
+  {% csrf_token %}
+  {% include "partials/_field.html" with field=form.name %}
+  {% include "partials/_field.html" with field=form.background %}
+  {% include "partials/_field.html" with field=form.overlay %}
+  <div class="d-flex flex-wrap gap-2">
+    <button type="submit" class="btn btn-primary px-4" data-busy-text="Uploading…">Upload and add boxes</button>
+    <a class="btn btn-link" href="{% url 'posters:designs' %}">Cancel</a>
+  </div>
+</form>
+{% endblock %}

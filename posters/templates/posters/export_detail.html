@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}{{ export.poster.name }} #{{ export.export_no }}{% endblock %}
+{% block page_title %}{{ export.poster.name }} <span class="text-secondary fw-normal">#{{ export.export_no }}</span>{% endblock %}
+{% block page_intro %}<p class="lead-text">Exported {{ export.created_at|date:"j M Y, H:i" }} by {{ export.created_by }} · {{ export.width }}×{{ export.height }} · {{ export.version }}</p>{% endblock %}
+{% block head %}<script type="module" src="{% static 'dist/share.js' %}"></script>{% endblock %}
+{% block page_actions %}
+  <a class="btn btn-outline-primary" href="{% url 'posters:export_image' export.pk %}?download=1"><i class="bi bi-download" aria-hidden="true"></i> Download</a>
+  <button type="button" class="btn btn-outline-primary" data-share="whatsapp"><i class="bi bi-whatsapp" aria-hidden="true"></i> WhatsApp</button>
+  <button type="button" class="btn btn-outline-primary" data-share="email"><i class="bi bi-envelope" aria-hidden="true"></i> Email</button>
+  {% if perms.posters.change_poster %}<a class="btn btn-outline-primary" href="{% url 'posters:edit' export.poster.pk %}"><i class="bi bi-pencil" aria-hidden="true"></i> Edit poster</a>{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="alert alert-info share-note" data-share-note role="status" hidden></div>
+{{ share|json_script:"share-data" }}
+<div class="export-view">
+  <img src="{% url 'posters:export_image' export.pk %}" alt="{{ export.poster.name }}" width="{{ export.width }}" height="{{ export.height }}">
+</div>
+<p class="small text-secondary mt-3">Each export is kept as it was made. Editing the poster and exporting again makes a new one.</p>
+{% endblock %}

@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}Posters{% endblock %}
+{% block page_title %}Posters{% endblock %}
+{% block page_actions %}
+  {% if perms.posters.add_poster and has_designs %}<a class="btn btn-primary" href="{% url 'posters:new' %}"><i class="bi bi-plus-lg" aria-hidden="true"></i> New poster</a>{% endif %}
+{% endblock %}
+
+{% block content %}
+{% include "posters/_nav.html" with active="posters" %}
+
+{% if not has_designs %}
+<div class="panel empty-state">
+  <i class="bi bi-image" aria-hidden="true"></i>
+  <p class="mb-3">Make posters for hospitals and customers from ready designs: type a headline and message, and your logo and contacts are added for you.</p>
+  {% if perms.posters.add_postertemplate %}
+  <form method="post" action="{% url 'posters:starter_designs' %}" class="d-inline">
+    {% csrf_token %}<button class="btn btn-primary" type="submit">Add the starter designs</button>
+  </form>
+  <a class="btn btn-outline-primary ms-1" href="{% url 'posters:design_create' %}">Upload your own design</a>
+  {% endif %}
+</div>
+{% endif %}
+
+<div class="row g-4">
+  <div class="col-xl-8">
+    <section class="panel p-0" aria-labelledby="posters-title">
+      <h2 id="posters-title" class="px-3 pt-3 px-md-4 pt-md-4">Your posters</h2>
+      {% if posters %}
+      <div class="table-responsive">
+        <table class="table align-middle table-hover mb-0 list-table">
+          <thead><tr><th scope="col">Poster</th><th scope="col" class="d-none d-sm-table-cell">Design</th><th scope="col">Exports</th></tr></thead>
+          <tbody>
+            {% for p in posters %}
+            <tr>
+              <td><a class="row-link fw-medium" href="{% url 'posters:edit' p.pk %}">{{ p.name }}</a>
+                <div class="small text-secondary">{% if p.occasion %}{{ p.occasion.name }} · {% endif %}edited {{ p.updated_at|date:"j M Y" }}</div></td>
+              <td class="d-none d-sm-table-cell">{{ p.template.name }}</td>
+              <td>{% with last=p.exports.all|first %}{% if last %}<a href="{% url 'posters:export' last.pk %}">{{ p.exports.all|length }} · latest {{ last.created_at|date:"j M" }}</a>{% else %}<span class="text-secondary">Not exported</span>{% endif %}{% endwith %}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="empty-state"><p>No posters yet.{% if has_designs and perms.posters.add_poster %} <a href="{% url 'posters:new' %}">Make your first poster</a>.{% endif %}</p></div>
+      {% endif %}
+    </section>
+  </div>
+  <div class="col-xl-4">
+    <section class="panel" aria-labelledby="upcoming-title">
+      <h2 id="upcoming-title">Coming up</h2>
+      {% if upcoming %}
+      <ul class="occasion-list">
+        {% for occasion, when, days in upcoming %}
+        <li>
+          <div><div class="fw-medium">{{ occasion.name }}</div>
+            <div class="small text-secondary">{{ when|date:"l j F" }} · {% if days == 0 %}today{% elif days == 1 %}tomorrow{% else %}in {{ days }} days{% endif %}</div></div>
+          {% if perms.posters.add_poster and has_designs %}<a class="btn btn-sm btn-outline-primary" href="{% url 'posters:new' %}?occasion={{ occasion.pk }}">Make poster</a>{% endif %}
+        </li>
+        {% endfor %}
+      </ul>
+      {% elif has_occasions %}
+      <p class="small text-secondary mb-0">Nothing in the next six weeks. <a href="{% url 'posters:calendar' %}">See the calendar</a>.</p>
+      {% else %}
+      <p class="small text-secondary">Keep a calendar of health days and holidays to make posters for, with reminders here and on the dashboard.</p>
+      {% if perms.posters.add_occasion %}
+      <form method="post" action="{% url 'posters:calendar_starters' %}">{% csrf_token %}<button class="btn btn-sm btn-outline-primary" type="submit">Add common health days and holidays</button></form>
+      {% endif %}
+      {% endif %}
+    </section>
+  </div>
+</div>
+{% endblock %}

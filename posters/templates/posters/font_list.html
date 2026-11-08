@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Poster fonts{% endblock %}
+{% block page_title %}Poster fonts{% endblock %}
+
+{% block content %}
+{% include "posters/_nav.html" with active="fonts" %}
+<div class="row g-4">
+  <div class="col-lg-6">
+    <section class="panel" aria-labelledby="fonts-title">
+      <h2 id="fonts-title">Fonts</h2>
+      <ul class="option-list">
+        {% for f in fonts %}
+        <li><div><div class="fw-medium">{{ f.name }}</div><div class="small text-secondary">{% if f.is_bundled %}Comes with the app (free, SIL Open Font Licence){% else %}Uploaded {{ f.created_at|date:"j M Y" }}{% endif %}</div></div></li>
+        {% endfor %}
+      </ul>
+    </section>
+  </div>
+  {% if form %}
+  <div class="col-lg-6">
+    <form method="post" enctype="multipart/form-data" class="panel" novalidate aria-labelledby="upload-title">
+      {% csrf_token %}
+      <h2 id="upload-title">Add a font</h2>
+      {% include "partials/_field.html" with field=form.name %}
+      {% include "partials/_field.html" with field=form.file %}
+      <button type="submit" class="btn btn-primary" data-busy-text="Uploading…">Add font</button>
+    </form>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
