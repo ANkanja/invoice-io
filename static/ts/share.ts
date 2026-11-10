@@ -1,5 +1,6 @@
 /**
- * WhatsApp and Email buttons on an issued invoice's page.
+ * WhatsApp and Email buttons for a picture: an issued invoice or a poster export.
+ * The page provides the picture and message as JSON in #share-data.
  *
  * - Where the browser can share files (most phones, when the app is opened
  *   over HTTPS or on the same device), the button opens the phone's share menu
@@ -10,7 +11,7 @@
  * The app itself never sends anything.
  */
 
-interface InvoiceShareData {
+interface ShareImageData {
   imageUrl: string;
   filename: string;
   subject: string;
@@ -19,11 +20,11 @@ interface InvoiceShareData {
   email: string;
 }
 
-function readData(): InvoiceShareData | null {
-  const el = document.getElementById("invoice-share-data");
+function readData(): ShareImageData | null {
+  const el = document.getElementById("share-data");
   if (!el?.textContent) return null;
   try {
-    return JSON.parse(el.textContent) as InvoiceShareData;
+    return JSON.parse(el.textContent) as ShareImageData;
   } catch {
     return null;
   }
@@ -78,15 +79,15 @@ function init(): void {
       window.open(`https://wa.me/${data!.whatsapp}?text=${encodeURIComponent(data!.text)}`, "_blank", "noopener");
       say(
         data!.whatsapp
-          ? `The invoice image has been downloaded (${data!.filename}). WhatsApp is opening with the message ready: attach the image, then send.`
-          : `The invoice image has been downloaded (${data!.filename}). No phone number is saved for this customer, so choose the chat in WhatsApp, attach the image and send.`,
+          ? `The image has been downloaded (${data!.filename}). WhatsApp is opening with the message ready: attach the image, then send.`
+          : `The image has been downloaded (${data!.filename}). Choose the chat in WhatsApp, attach the image and send.`,
       );
     } else {
       window.location.href =
         `mailto:${data!.email}?subject=${encodeURIComponent(data!.subject)}&body=${encodeURIComponent(data!.text)}`;
       say(
-        `The invoice image has been downloaded (${data!.filename}). Your email app is opening with the message ready: attach the image, then send.` +
-          (data!.email ? "" : " No email address is saved for this customer, so type it in."),
+        `The image has been downloaded (${data!.filename}). Your email app is opening with the message ready: attach the image, then send.` +
+          (data!.email ? "" : " Type the email address in."),
       );
     }
   }

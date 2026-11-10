@@ -8,7 +8,7 @@ Built with Django 5.2 LTS, server-rendered templates, Bootstrap 5.3 and
 TypeScript (compiled by Vite). SQLite is used for local development and
 PostgreSQL in production.
 
-> **Status:** Phases 1–4 (foundation; products, customers and stock; invoices; payments and dashboard) are complete. See `planning/PROGRESS.md` for
+> **Status:** Phases 1–5 (foundation; products, customers and stock; invoices; payments and dashboard; posters) are complete. See `planning/PROGRESS.md` for
 > what's done, what's next and known limitations. `planning/PHASE0_PLAN.md`
 > has the agreed architecture.
 
@@ -122,6 +122,31 @@ at the old price). Check each product's **Ways to sell** once and correct
 anything that doesn't match how you actually sell it. Old invoices are
 unchanged.
 
+## Posters
+
+**Posters** makes information posters (for hospitals, schools and customers)
+in square (posts) and story (WhatsApp Status) sizes.
+
+1. **Designs**: press **Add the starter designs** for ready-made designs, or
+   **Upload a design** you made in Canva (download it as PNG or JPG with empty
+   spaces for the text). Then draw the boxes: **Add a box** for the headline,
+   message, date, logo, business name or contacts, drag it into place, drag
+   its corner to resize, and choose the font, size and colour. Save.
+2. **Calendar**: press **Add common health days and Kenyan holidays**, check
+   the dates, and add your own (an occasion repeats every year unless you give
+   a year, e.g. for Easter). What's coming up shows on the dashboard.
+3. **Make a poster**: press **Make poster** next to an occasion (or **New
+   poster**), choose a design, type the headline and message (start a line with
+   "-" for a bullet point) and watch the preview. Your logo and contacts come
+   from Settings. If text is too long the preview says which box.
+4. **Save and export** makes the finished picture. Every export is kept; send
+   it with **WhatsApp** or **Email**, or **Download** it to print.
+5. **Fonts**: three free fonts come with the app. Upload more as .ttf or .otf
+   files if their licence allows it.
+
+Editing a design that has already been used makes a new version, so posters
+you exported earlier never change.
+
 ## Sending invoices
 
 On an issued invoice, press **WhatsApp** or **Email**.
@@ -165,6 +190,7 @@ customers/    Customers (individuals and organisations)
 inventory/    Stock ledger (stock in / out / count adjustments / sales / reversals)
 invoices/     Invoices, lines, numbering, calculations, lifecycle services
 payments/     Payment methods, payments, allocations to invoices
+posters/      Poster designs, box editor, renderer, exports, calendar of occasions
 templates/    Shared layout and partials
 static/ts/    TypeScript sources  → compiled to static/dist/ by Vite
 static/css/   Custom styles on top of Bootstrap

@@ -227,8 +227,8 @@ class ShareTests(TestCase):
                 self.assertIn(text, share["text"])
         self.assertContains(r, 'data-share="whatsapp"')
         self.assertContains(r, 'data-share="email"')
-        self.assertContains(r, 'id="invoice-share-data"')
-        self.assertContains(r, "dist/invoice-share.js")
+        self.assertContains(r, 'id="share-data"')
+        self.assertContains(r, "dist/share.js")
 
     def test_message_mentions_the_balance_or_that_it_is_paid(self):
         inv = self.issued()

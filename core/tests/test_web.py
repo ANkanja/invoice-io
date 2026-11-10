@@ -143,7 +143,8 @@ class DashboardTests(TestCase):
         configure_business(name="Test Business")
         response = self.client.get(reverse("core:dashboard"))
         self.assertContains(response, "Test Business")
-        self.assertContains(response, 'aria-disabled="true"')
+        self.assertContains(response, f'href="{reverse("posters:list")}"')  # every section is now live
+        self.assertNotContains(response, 'aria-disabled="true"')
         self.assertNotContains(response, 'href="#"')
 
 

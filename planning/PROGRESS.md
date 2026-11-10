@@ -10,7 +10,7 @@
 | D4 | Corrections = cancel and reissue | Default accepted |
 | D5 | One payment can cover several invoices (allocations) | Default accepted; tables built |
 | D6 | `INV-YYYY-NNNN`, number assigned on issue, yearly reset | Default accepted |
-| D7 | Poster template format, sizes, fonts | **Open.** Needed before Phase 5. The `posters` app will be created then. |
+| D7 | Poster template format, sizes, fonts | **Decided 7 Nov 2026:** no templates yet, so the app ships starter designs; square 1080×1080 and story 1080×1920; bundled free fonts (Montserrat, SIL OFL), own .ttf/.otf can be uploaded. Posters are information posters for hospitals following the health and ordinary calendar. |
 | D8 | Python/Node/Git versions on the PC | Python 3.13.1, Node 24.19.0, Git 2.47.1 — all compatible |
 
 Changes to the original plan:
@@ -258,7 +258,7 @@ be changed by hand; share buttons for WhatsApp and email. Decisions:
 - Sharing: no email service. Phones that can share files get the share menu
   with the image; otherwise the image downloads and WhatsApp (wa.me) or the
   email app opens with a prefilled message (`invoices/sharing.py`,
-  `static/ts/invoice-share.ts`). Shown on issued invoices only.
+  `static/ts/share.ts`). Shown on issued invoices only.
 - Migrations: core/0002, customers/0002, invoices/0005, products/0006, all
   additive (new fields, one label change).
 
@@ -267,10 +267,53 @@ a copy of the live database at 1366 px and 390 px (type switch re-prices and
 re-terms, typed price kept, saved customer sets the type, WhatsApp fallback).
 The phone share menu needs HTTPS, so it can't be checked locally.
 
-## Next: Phase 5 — posters
-- Needs your answers first (D7): what your poster templates are (Canva/Photoshop
-  exports? PNG/JPG/PDF?), which sizes (square, story, A4) and whether you have the
-  font files (.ttf/.otf).
+## Phase 5 — posters — done
+
+Requested: information posters for hospitals that follow the health calendar
+and ordinary holidays; headline + message, date badge, logo and contacts;
+starter designs now and own designs (e.g. Canva) with a box editor.
+
+Built (`posters` app):
+- **Renderer** (`posters/rendering.py`, Pillow): background untouched, logo
+  fitted in its box, optional overlay, text in each box's font, shrunk to fit
+  (down to the box's smallest size) and wrapped; text that still doesn't fit is
+  cut with "…" and the page warns which box. Lines starting "- " become bullets.
+  Preview and export use the same function.
+- **Starter designs** (`posters/starters.py`): "Green band" and "Fresh card",
+  each square and story, drawn in code in the app's colours. Added with one
+  button (Posters or Designs page). Bundled fonts in `posters/fonts/` (OFL.txt).
+- **Own designs**: upload a PNG/JPG (300–4000 px a side; optional transparent
+  overlay of the same size), then the **box editor** (`static/ts/design-editor.ts`):
+  add boxes (headline, message, date, business name, phone, contacts, logo,
+  extra text), drag to move, drag the corner to resize, arrow keys nudge, exact
+  numbers, font, size, smallest size, colour, alignment, lines, capitals.
+  The server checks every box (`services.parse_fields`).
+- **Versions**: a design version locks on its first export; saving a locked
+  design makes the next version (same pictures), so old exports never change.
+- **Posters**: pick a design (optionally from an occasion), type text with a
+  live preview (`static/ts/poster-editor.ts`), save, export. Business name and
+  contacts start from Settings and can be edited per poster. Switching design
+  keeps text in boxes both designs share.
+- **Exports**: full-size PNG, numbered per poster, kept for good (no edit or
+  delete), with Download, WhatsApp and Email (shared `static/ts/share.ts`).
+- **Calendar**: occasions repeat yearly by day and month, or one year only
+  (moving dates such as Easter). One button adds common health days and fixed
+  Kenyan holidays (only missing ones; nothing overwritten). The next 30 days
+  show on the dashboard and 45 days on the Posters page with "Make poster".
+- **Fonts page**: bundled fonts listed; upload .ttf/.otf (checked by loading it).
+- Permissions on every view (Django model permissions for posters, designs,
+  exports, occasions, fonts). Sidebar link enabled.
+- Migration `posters/0001` only creates new tables.
+
+Verified: **265 tests pass** (22 posters tests in `posters/tests/test_posters.py`); browser run on a
+copy of the live database and media: starter designs and calendar added, poster
+for World Toilet Day from the dashboard list, live preview and too-long warning,
+export and download, design upload, add/drag/resize boxes and save; all poster
+pages at 390 px without sideways scrolling.
+
+## Next
+- Phase 6 (optional AI image tools) and Phase 7 (going live: PostgreSQL, HTTPS,
+  backups, login rate limiting).
 
 ## Known issues and limitations
 - SQLite ignores `select_for_update()`. Invoice numbering and stock stay safe because they rely on single-statement `F()` updates plus unique constraints. Real concurrency tests against PostgreSQL are planned for Phase 7.
@@ -278,5 +321,7 @@ The phone share menu needs HTTPS, so it can't be checked locally.
 - There's no rate limiting on login attempts yet (Phase 7) and no password reset by email (no email provider). Reset passwords with `python manage.py changepassword <username>`.
 - Page scripts share small chunks (`dist/chunks/decimal.js`, `units.js`) that aren't cache-busted in production; they're tiny and rarely change. To revisit in Phase 7 if needed.
 - Calvary hill Hospital is saved as an Individual; change it to Institution on its customer page if it should get institution prices.
+- Poster thumbnails and previews are drawn on request (about 0.1 s each); fine for a few designs, could be cached later.
+- Poster text uses the fonts' Latin characters; emoji are not drawn.
 - Jik was converted with the generic rule ("1L container" at KES 1,300, stock 23 L); the owner should confirm that's how it's sold.
 - Invoice quantities allow 2 decimal places (type 125 g rather than 0.125 kg).

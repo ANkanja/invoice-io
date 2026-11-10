@@ -37,7 +37,9 @@
         {% if perms.inventory.view_stockmovement %}
         <li class="nav-item"><a class="nav-link{% if ns == 'inventory' %} active{% endif %}" href="{% url 'inventory:overview' %}" {% if ns == 'inventory' %}aria-current="page"{% endif %}><i class="bi bi-box-seam" aria-hidden="true"></i>Stock{% if low_stock_count %}<span class="nav-count" title="Low or out of stock">{{ low_stock_count }}</span>{% endif %}</a></li>
         {% endif %}
-        <li class="nav-item"><span class="nav-link disabled" aria-disabled="true"><i class="bi bi-image" aria-hidden="true"></i>Posters<span class="soon">Soon</span></span></li>
+        {% if perms.posters.view_poster %}
+        <li class="nav-item"><a class="nav-link{% if ns == 'posters' %} active{% endif %}" href="{% url 'posters:list' %}" {% if ns == 'posters' %}aria-current="page"{% endif %}><i class="bi bi-image" aria-hidden="true"></i>Posters</a></li>
+        {% endif %}
         {% if perms.core.change_businesssettings %}
         <li class="nav-item mt-2">
           <a class="nav-link{% if current == 'settings' and ns == 'core' %} active{% endif %}" href="{% url 'core:settings' %}"

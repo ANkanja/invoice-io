@@ -15,6 +15,7 @@ from django.utils._os import safe_join
 from django.views.decorators.http import require_GET, require_http_methods
 
 from inventory.models import StockMovement
+from posters.services import upcoming_occasions
 from products.models import Product
 from products.units import format_in_display_unit
 
@@ -89,6 +90,8 @@ def dashboard(request):
     }
     if context["show_money"]:
         context.update(_money_dashboard(today))
+    if request.user.has_perm("posters.view_occasion"):
+        context["upcoming_occasions"] = upcoming_occasions(today, days=30)[:6]
     return render(request, "core/dashboard.html", context)
 
 

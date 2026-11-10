@@ -2,7 +2,8 @@
 
 Private Django web app for the owner's soap and cleaning-products business in
 Kenya: products with units and selling options, stock ledger, invoices (issue,
-amend, cancel/replace), payments, dashboard. Posters (Phase 5) are next.
+amend, cancel/replace), payments, dashboard, posters (designs, box editor,
+exports, health calendar).
 
 Read `planning/PROGRESS.md` first: it has every decision so far, what each phase
 built, and known limitations. `README.md` has setup and the business rules.
@@ -14,11 +15,12 @@ built, and known limitations. `README.md` has setup and the business rules.
 - Invoices are PNG images: ReportLab lays out one page and pypdfium2 turns it into a
   picture (`invoices/pdf.py`). Receipts are still PDFs (`payments/pdf.py`). Pillow
   handles uploaded images.
+- Posters: Pillow with bundled Montserrat fonts (`posters/fonts/`, SIL OFL).
 - Settings come from `.env` (never commit it; never print the secret key).
 
 ## Commands (PowerShell, venv active)
 - Run: `python manage.py runserver`
-- Tests: `python manage.py test` (all must pass; 243 now)
+- Tests: `python manage.py test` (all must pass; 265 now)
 - Front end: `npm run typecheck`, `npm run build`
 - Migrations: `python manage.py makemigrations --check --dry-run` must be clean.
 
@@ -42,6 +44,6 @@ built, and known limitations. `README.md` has setup and the business rules.
 ## Working with the owner
 - Explain changes in plain language; ask before major design decisions or
   anything that rewrites existing data (data migrations).
-- Phase 5 (posters) is waiting on the owner's answers: template format
-  (Canva/Photoshop export, PNG/JPG/PDF), sizes (square, story, A4) and font
-  files (.ttf/.otf).
+- Posters are information posters for hospitals following the health and
+  ordinary calendar. Poster drawing lives in `posters/rendering.py` (preview and
+  export share it); design versions lock on first export; exports are kept.

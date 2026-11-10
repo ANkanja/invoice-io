@@ -5,7 +5,7 @@ or email.
 The app has no email service of its own. The browser does the sending: on
 phones that can share files it opens the share menu with the invoice image
 attached; elsewhere it downloads the image and opens WhatsApp or the email app
-with the customer and this message filled in (see static/ts/invoice-share.ts).
+with the customer and this message filled in (see static/ts/share.ts).
 """
 
 import re

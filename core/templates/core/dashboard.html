@@ -156,4 +156,21 @@
 </section>
   </div>
 </div>
+{% if upcoming_occasions %}
+<section class="panel mt-4" aria-labelledby="occasions-title">
+  <div class="d-flex flex-wrap justify-content-between align-items-baseline gap-2 mb-2">
+    <h2 id="occasions-title" class="mb-0">Posters coming up</h2>
+    <a class="small" href="{% url 'posters:calendar' %}">Calendar</a>
+  </div>
+  <ul class="occasion-list">
+    {% for occasion, when, days in upcoming_occasions %}
+    <li>
+      <div><div class="fw-medium">{{ occasion.name }}</div>
+        <div class="small text-secondary">{{ when|date:"l j F" }} · {% if days == 0 %}today{% elif days == 1 %}tomorrow{% else %}in {{ days }} days{% endif %}</div></div>
+      {% if perms.posters.add_poster %}<a class="btn btn-sm btn-outline-primary" href="{% url 'posters:new' %}?occasion={{ occasion.pk }}">Make poster</a>{% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}
 {% endblock %}
