@@ -183,6 +183,47 @@ On an issued invoice, press **WhatsApp** or **Email**.
 - WhatsApp opens the customer's chat when a phone number is saved (numbers
   starting 07 or 01 are treated as Kenyan). The app never sends anything itself.
 
+## Using it on your phone (Tailscale)
+
+The app stays on your PC. Tailscale links your phone to the PC privately (only
+devices signed in to your Tailscale account can reach it) and gives it a secure
+`https://` address, so it works anywhere your phone has internet, as long as
+the PC is on.
+
+**Once:**
+1. On the PC, download Tailscale from tailscale.com/download, install it and
+   sign in (a Google account is fine).
+2. On your phone, install **Tailscale** from the Play Store or App Store and
+   sign in with the **same** account. Switch it on.
+3. In the Tailscale admin page (login.tailscale.com → **DNS**), make sure
+   **MagicDNS** and **HTTPS Certificates** are enabled.
+4. Double-click **start-app.bat** in the project folder. Then, in PowerShell, run:
+
+   ```powershell
+   tailscale serve --bg 8000
+   ```
+
+   This tells Tailscale to pass your private https address to the app. It's
+   remembered after restarts.
+5. The app window shows the phone address, like
+   `https://your-pc.tailxxxx.ts.net`. Open it on the phone, sign in, and use
+   the browser's **Add to Home screen** so it opens like an app.
+
+**Every day:** double-click **start-app.bat** and keep its window open (you can
+minimise it). On the PC itself use http://localhost:8000. To start it
+automatically, put a shortcut to `start-app.bat` in the folder that opens with
+Windows key + R → `shell:startup`.
+
+**Keep in mind:**
+- The PC must be on and not asleep: Windows Settings → System → Power → set
+  "Sleep" to Never when plugged in.
+- Never run `tailscale funnel` for this app: that would put it on the public internet.
+- Use a screen lock on your phone; it stays signed in for 12 hours.
+- start-app.bat runs the app properly (Waitress, debug off). `python manage.py
+  runserver` is only for development.
+- After an update: `pip install -r requirements.txt`, `npm run build`,
+  `python manage.py migrate`, then start the app again (it warns if migrate is needed).
+
 ## 3. Day-to-day development
 
 Use two terminals, both in the project folder with the virtual environment

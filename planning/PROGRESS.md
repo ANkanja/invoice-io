@@ -341,6 +341,25 @@ remover from real sales, live totals matched the saved totals, over-budget
 warning, a Jik purchase added 20 L to stock; pages at 390 px without sideways
 scrolling.
 
+## Phone access through Tailscale — done
+
+Decision (owner, 14 Nov 2026): Tailscale now (private, free, HTTPS, data stays on
+the PC); online hosting later with Phase 7. Vercel ruled out (no persistent
+files for SQLite and uploads).
+
+Built:
+- `serve.py` + `start-app.bat`: Waitress on 127.0.0.1:8000, DEBUG off, allowed
+  host and CSRF origin = this PC's Tailscale name (read from `tailscale status
+  --json`) plus localhost, SSL redirect off (Tailscale serve terminates HTTPS),
+  X-Forwarded-Proto trusted from 127.0.0.1 only; runs collectstatic and warns
+  if migrations are pending. `waitress==3.0.2` added to requirements.
+- README "Using it on your phone": install and sign in on both devices, enable
+  MagicDNS and HTTPS certificates, `tailscale serve --bg 8000`.
+
+Verified on the PC (Tailscale not installed yet): login page 200, fingerprinted
+CSS served, unknown Host header → 400, no debug page on 404, Secure cookies,
+nosniff, X-Frame-Options DENY. Phone access needs the owner's Tailscale setup.
+
 ## Next
 - Phase 6 (optional AI image tools) and Phase 7 (going live: PostgreSQL, HTTPS,
   backups, login rate limiting).

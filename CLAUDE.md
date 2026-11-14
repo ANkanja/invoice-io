@@ -19,7 +19,8 @@ built, and known limitations. `README.md` has setup and the business rules.
 - Settings come from `.env` (never commit it; never print the secret key).
 
 ## Commands (PowerShell, venv active)
-- Run: `python manage.py runserver`
+- Run (development): `python manage.py runserver`
+- Run (everyday, PC + phone via Tailscale): `start-app.bat` / `python serve.py`
 - Tests: `python manage.py test` (all must pass; 280 now)
 - Front end: `npm run typecheck`, `npm run build`
 - Migrations: `python manage.py makemigrations --check --dry-run` must be clean.
