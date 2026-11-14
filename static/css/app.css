@@ -650,3 +650,23 @@ tr.is-reversed td { color: var(--ink-muted); }
 .design-box-label { position: absolute; left: 0; top: 0; max-width: 100%; padding: 0 0.3rem; font-size: 0.72rem; font-weight: 600; line-height: 1.4; color: #fff; background: rgba(23, 79, 66, 0.9); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .design-box-handle { position: absolute; right: 0; bottom: 0; width: 16px; height: 16px; background: var(--eucalyptus); cursor: nwse-resize; border-top-left-radius: 4px; }
 @media (pointer: coarse) { .design-box-handle { width: 24px; height: 24px; } }
+
+
+/* --- Restock plan ------------------------------------------------------------------------- */
+.restock-lines { list-style: none; margin: 0; padding: 0; }
+.restock-line { padding: 1rem 0; border-top: 1px solid var(--line); }
+.restock-line:first-child { border-top: 0; padding-top: 0; }
+.restock-line.is-removed { opacity: 0.5; }
+.restock-line-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 0.75rem; margin-bottom: 0.6rem; }
+.restock-line-plan { display: grid; grid-template-columns: 1fr 1fr auto; gap: 0.75rem; align-items: end; }
+.restock-line-plan .form-control { min-width: 0; }
+@media (max-width: 575.98px) { .restock-line-plan { grid-template-columns: 1fr 1fr; } .restock-line-plan > :last-child { grid-column: 1 / -1; text-align: left !important; } }
+.restock-line-actual { margin-top: 0.6rem; }
+.restock-purchases { margin: 0.35rem 0 0; padding-left: 1.1rem; }
+.restock-purchases .is-void { text-decoration: line-through; color: var(--ink-muted); }
+.restock-line-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem 1.25rem; margin-top: 0.6rem; }
+.status-pill.restock-not_bought { background: var(--eucalyptus-tint); color: var(--ink-muted); }
+.status-pill.restock-partly { background: #fdf0d2; color: #7a5a00; }
+.status-pill.restock-done { background: #dcefe6; color: #1f6f5c; }
+.status-pill.restock-more { background: #e6e9f5; color: #34407a; }
+@media (min-width: 992px) { .restock-summary { position: sticky; top: 1rem; } }

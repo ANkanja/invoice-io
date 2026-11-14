@@ -15,6 +15,7 @@ urlpatterns = [
     path("invoices/", include("invoices.urls")),
     path("payments/", include("payments.urls")),
     path("posters/", include("posters.urls")),
+    path("restock/", include("restock.urls")),
     path("admin/", admin.site.urls),
     # Uploaded files are never public: served only to logged-in users.
     path("media/<path:path>", protected_media, name="media"),

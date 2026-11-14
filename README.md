@@ -122,6 +122,30 @@ at the old price). Check each product's **Ways to sell** once and correct
 anything that doesn't match how you actually sell it. Old invoices are
 unchanged.
 
+## Restock plan
+
+**Restock plan** replaces planning on paper: each month, list what to buy,
+then record what you really bought and paid.
+
+1. **Start a plan** for a month (and type your budget if you have one). It
+   starts with every product that needs restocking. For each, the suggested
+   quantity is: what you sold on average per month over the last 3 months,
+   plus its low-stock alert level, minus what's in stock, rounded up to a whole
+   litre, kilo or piece. The cost per unit is the last price you entered on a
+   **Stock in**. Other items from your previous plan (raw materials, containers,
+   transport) are copied in.
+2. **Adjust** any quantity or price, remove lines, **Add a product** or **Add
+   another item** (anything you buy that isn't a product you sell). The planned
+   total and how it compares with the budget update as you type. Press **Save plan**.
+3. **When you buy**, press **Record purchase** on the line and enter what you
+   really got and the total you paid. Products are added to stock automatically
+   (no separate Stock in needed). Bought in two trips? Record each one.
+4. The plan shows, for each line, planned vs bought and whether you paid more or
+   less than planned, plus spent so far and budget left. The dashboard shows this
+   month's plan.
+5. Entered a purchase by mistake? **Reverse** it with a reason: it stays on
+   record, stops counting, and any stock it added is taken back out.
+
 ## Posters
 
 **Posters** makes information posters (for hospitals, schools and customers)
@@ -190,6 +214,7 @@ customers/    Customers (individuals and organisations)
 inventory/    Stock ledger (stock in / out / count adjustments / sales / reversals)
 invoices/     Invoices, lines, numbering, calculations, lifecycle services
 payments/     Payment methods, payments, allocations to invoices
+restock/      Monthly restock plans, purchases (into stock), budget
 posters/      Poster designs, box editor, renderer, exports, calendar of occasions
 templates/    Shared layout and partials
 static/ts/    TypeScript sources  → compiled to static/dist/ by Vite

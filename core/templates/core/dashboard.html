@@ -156,6 +156,24 @@
 </section>
   </div>
 </div>
+{% if show_restock %}
+<section class="panel mt-4" aria-labelledby="restock-title">
+  <div class="d-flex flex-wrap justify-content-between align-items-baseline gap-2 mb-2">
+    <h2 id="restock-title" class="mb-0">Restock this month</h2>
+    <a class="small" href="{% if restock %}{% url 'restock:detail' restock.plan.pk %}{% else %}{% url 'restock:list' %}{% endif %}">{% if restock %}Open plan{% else %}Restock plans{% endif %}</a>
+  </div>
+  {% if restock %}
+  <div class="figures">
+    <div><span class="figure-label">Planned</span><span class="figure-value">{{ restock.planned_total|money }}</span></div>
+    <div><span class="figure-label">Spent</span><span class="figure-value">{{ restock.spent|money }}</span></div>
+    {% if restock.plan.budget is not None %}<div><span class="figure-label">Budget left</span><span class="figure-value{% if restock.budget_left < 0 %} text-danger{% endif %}">{{ restock.budget_left|money }}</span></div>{% endif %}
+  </div>
+  <p class="small text-secondary mt-2 mb-0">{{ restock.lines_done }} of {{ restock.lines|length }} item{{ restock.lines|length|pluralize }} bought.</p>
+  {% else %}
+  <p class="small text-secondary mb-0">No plan for {{ today|date:"F" }} yet. {% if perms.restock.add_restockplan %}<a href="{% url 'restock:list' %}">Start one</a>: it suggests what to buy from your sales and stock.{% endif %}</p>
+  {% endif %}
+</section>
+{% endif %}
 {% if upcoming_occasions %}
 <section class="panel mt-4" aria-labelledby="occasions-title">
   <div class="d-flex flex-wrap justify-content-between align-items-baseline gap-2 mb-2">

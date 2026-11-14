@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% load formatting %}
+{% block title %}Reverse purchase{% endblock %}
+{% block page_title %}Reverse purchase{% endblock %}
+{% block page_intro %}<p class="lead-text">{{ purchase.line.description }}: {{ purchase.quantity|qty }} {{ purchase.line.unit_label }} for {{ purchase.amount_paid|money }} on {{ purchase.purchase_date|date:"j M Y" }}.</p>{% endblock %}
+
+{% block content %}
+<form method="post" class="panel" novalidate>
+  {% csrf_token %}
+  {% if form.non_field_errors %}<div class="alert alert-danger">{% for e in form.non_field_errors %}<div>{{ e }}</div>{% endfor %}</div>{% endif %}
+  <p>The purchase stays on record but stops counting{% if purchase.stock_movement_id %}, and the {{ purchase.quantity|qty }} {{ purchase.line.unit_label }} it added to stock are taken back out{% endif %}. Then record the right purchase.</p>
+  {% include "partials/_field.html" with field=form.reason %}
+  <div class="d-flex flex-wrap gap-2">
+    <button type="submit" class="btn btn-danger" data-busy-text="Reversing…">Reverse purchase</button>
+    <a class="btn btn-link" href="{% url 'restock:detail' purchase.line.plan_id %}">Cancel</a>
+  </div>
+</form>
+{% endblock %}

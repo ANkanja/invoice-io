@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% load formatting %}
+{% block title %}Record purchase{% endblock %}
+{% block page_title %}Record purchase: {{ line.description }}{% endblock %}
+{% block page_intro %}<p class="lead-text">Planned {{ line.planned_qty|qty }} {{ line.unit_label }}{% if line.planned_unit_cost is not None %} at {{ line.planned_unit_cost|money }} per {{ line.unit_label|default:"unit" }}{% endif %}{% if figures.bought %}; bought {{ figures.bought|qty }} so far for {{ figures.paid|money }}{% endif %}.</p>{% endblock %}
+
+{% block content %}
+<form method="post" class="panel" novalidate>
+  {% csrf_token %}
+  {% if form.non_field_errors %}<div class="alert alert-danger">{% for e in form.non_field_errors %}<div>{{ e }}</div>{% endfor %}</div>{% endif %}
+  {{ form.token }}
+  <div class="row g-x-4">
+    <div class="col-md-6">{% include "partials/_field.html" with field=form.quantity %}</div>
+    <div class="col-md-6">{% include "partials/_field.html" with field=form.amount_paid %}</div>
+    <div class="col-md-6">{% include "partials/_field.html" with field=form.purchase_date %}</div>
+    <div class="col-md-6">{% include "partials/_field.html" with field=form.reference %}</div>
+  </div>
+  <p class="small text-secondary">{% if line.product and line.product.track_stock %}This is also recorded as <strong>Stock in</strong> for {{ line.product }}.{% else %}This item isn't kept in stock; it only counts towards what you've spent.{% endif %} Bought it in two trips? Record each one.</p>
+  <div class="d-flex flex-wrap gap-2">
+    <button type="submit" class="btn btn-primary px-4" data-busy-text="Saving…">Save purchase</button>
+    <a class="btn btn-link" href="{% url 'restock:detail' plan.pk %}">Cancel</a>
+  </div>
+</form>
+{% endblock %}

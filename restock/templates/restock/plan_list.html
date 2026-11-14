@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% load formatting %}
+{% block title %}Restock plans{% endblock %}
+{% block page_title %}Restock plans{% endblock %}
+{% block page_intro %}<p class="lead-text">Plan what to buy each month, then tick off what you really bought and paid. Products you buy are added to stock for you.</p>{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+  {% if form %}
+  <div class="col-lg-4 order-lg-2">
+    <form method="post" class="panel" novalidate aria-labelledby="new-title">
+      {% csrf_token %}
+      <h2 id="new-title">New plan</h2>
+      {% if form.fields.month.choices %}
+      <p class="small text-secondary">Starts with every product that needs restocking (sales over the last 3 months, what's in stock and its low-stock alert), at the last price you paid, plus the other items from your last plan.</p>
+      {% include "partials/_field.html" with field=form.month %}
+      {% include "partials/_field.html" with field=form.budget %}
+      <button type="submit" class="btn btn-primary" data-busy-text="Working it out…">Start plan</button>
+      {% else %}
+      <p class="small text-secondary mb-0">There are already plans for this month and the next two.</p>
+      {% endif %}
+    </form>
+  </div>
+  {% endif %}
+  <div class="{% if form %}col-lg-8 order-lg-1{% else %}col-12{% endif %}">
+    <section class="panel p-0" aria-labelledby="plans-title">
+      <h2 id="plans-title" class="px-3 pt-3 px-md-4 pt-md-4">Plans</h2>
+      {% if plans %}
+      <div class="table-responsive">
+        <table class="table align-middle table-hover mb-0 list-table">
+          <thead><tr><th scope="col">Month</th><th scope="col" class="num">Planned</th><th scope="col" class="num">Spent</th><th scope="col" class="num d-none d-sm-table-cell">Budget</th></tr></thead>
+          <tbody>
+            {% for f in plans %}
+            <tr>
+              <td><a class="row-link fw-medium" href="{% url 'restock:detail' f.plan.pk %}">{{ f.plan.month|date:"F Y" }}</a>
+                <div class="small text-secondary">{{ f.lines_done }} of {{ f.lines|length }} item{{ f.lines|length|pluralize }} bought</div></td>
+              <td class="num">{{ f.planned_total|money }}</td>
+              <td class="num">{{ f.spent|money }}</td>
+              <td class="num d-none d-sm-table-cell">{% if f.plan.budget is not None %}{{ f.plan.budget|money }}{% else %}—{% endif %}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="empty-state"><i class="bi bi-cart3" aria-hidden="true"></i><p>No plans yet. Start one for next month.</p></div>
+      {% endif %}
+    </section>
+  </div>
+</div>
+{% endblock %}

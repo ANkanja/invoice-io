@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% load formatting static %}
+{% block title %}Restock {{ plan.month|date:"F Y" }}{% endblock %}
+{% block page_title %}Restock plan · {{ plan.month|date:"F Y" }}{% endblock %}
+{% block head %}{% if form %}<script type="module" src="{% static 'dist/restock-plan.js' %}"></script>{% endif %}{% endblock %}
+{% block page_actions %}<a class="btn btn-outline-primary" href="{% url 'restock:list' %}"><i class="bi bi-arrow-left" aria-hidden="true"></i> All plans</a>{% endblock %}
+
+{% block content %}
+{% if form.non_field_errors %}<div class="alert alert-danger" role="alert">{% for e in form.non_field_errors %}<div>{{ e }}</div>{% endfor %}</div>{% endif %}
+<form method="post" novalidate {% if form %}data-restock-form{% endif %}>
+  {% csrf_token %}
+  <div class="row g-4">
+    <div class="col-lg-4 order-lg-2">
+      <section class="panel restock-summary" aria-labelledby="summary-title">
+        <h2 id="summary-title">Money</h2>
+        {% if form %}{% include "partials/_field.html" with field=form.budget %}{% endif %}
+        <dl class="totals-list">
+          {% if not form and plan.budget is not None %}<dt>Budget</dt><dd>{{ plan.budget|money }}</dd>{% endif %}
+          <dt>Planned</dt><dd data-plan-total>{{ figures.planned_total|money }}</dd>
+          <dt>Spent so far</dt><dd>{{ figures.spent|money }}</dd>
+          {% if plan.budget is not None %}<dt class="grand">Budget left</dt><dd class="grand{% if figures.budget_left < 0 %} text-danger{% endif %}">{{ figures.budget_left|money }}</dd>{% endif %}
+        </dl>
+        <p class="small mb-0 {% if figures.over_budget_by %}text-danger{% else %}text-secondary{% endif %}" data-budget-gap>{% if figures.over_budget_by %}The plan is {{ figures.over_budget_by|money }} over the budget.{% elif plan.budget is not None %}The plan fits the budget.{% endif %}</p>
+        <p class="small text-secondary mt-2 mb-0">{{ figures.lines_done }} of {{ figures.lines|length }} item{{ figures.lines|length|pluralize }} bought.</p>
+      </section>
+    </div>
+
+    <div class="col-lg-8 order-lg-1">
+      <section class="panel" aria-labelledby="items-title">
+        <h2 id="items-title">Items to buy</h2>
+        {% if rows %}
+        <ul class="restock-lines">
+          {% for row in rows %}{% with f=row.f line=row.f.line %}
+          <li class="restock-line" data-line>
+            <div class="restock-line-head">
+              <div>
+                <div class="fw-semibold">{% if line.product %}<a href="{% url 'products:detail' line.product.pk %}">{{ line.description }}</a>{% else %}{{ line.description }}{% endif %}</div>
+                <div class="small text-secondary">
+                  {% if line.product %}{% if line.monthly_sales is not None %}Sold about {{ line.monthly_sales|qty }} {{ line.unit_label }} a month · {{ line.stock_at_planning|qty }} {{ line.unit_label }} in stock when planned{% if line.suggested_qty is not None %} · suggested {{ line.suggested_qty|qty }}{% endif %}{% endif %}
+                  {% else %}Other item (not kept in stock){% endif %}
+                </div>
+              </div>
+              <span class="status-pill restock-{{ f.status }}">{% if f.status == "not_bought" %}Not bought{% elif f.status == "partly" %}Partly bought{% elif f.status == "done" %}Bought{% else %}Bought more{% endif %}</span>
+            </div>
+            <div class="restock-line-plan">
+              {% if form %}
+              <div><label class="form-label small mb-1" for="{{ row.qty.id_for_label }}">Quantity{% if line.unit_label %} ({{ line.unit_label }}){% endif %}</label>{{ row.qty }}{% for e in row.qty.errors %}<div class="invalid-feedback d-block">{{ e }}</div>{% endfor %}</div>
+              <div><label class="form-label small mb-1" for="{{ row.cost.id_for_label }}">Cost per {{ line.unit_label|default:"unit" }} (KES)</label>{{ row.cost }}{% for e in row.cost.errors %}<div class="invalid-feedback d-block">{{ e }}</div>{% endfor %}</div>
+              {% else %}
+              <div><span class="small text-secondary">Quantity</span><div>{{ line.planned_qty|qty }} {{ line.unit_label }}</div></div>
+              <div><span class="small text-secondary">Cost per {{ line.unit_label|default:"unit" }}</span><div>{% if line.planned_unit_cost is not None %}{{ line.planned_unit_cost|money }}{% else %}—{% endif %}</div></div>
+              {% endif %}
+              <div class="text-end"><span class="small text-secondary">Planned</span><div class="fw-semibold" data-line-total>{{ line.planned_total|money }}</div></div>
+            </div>
+            <div class="restock-line-actual small">
+              {% if f.bought %}
+              Bought <strong>{{ f.bought|qty }} {{ line.unit_label }}</strong> for <strong>{{ f.paid|money }}</strong>{% if f.cost_difference %} · {% if f.cost_difference > 0 %}<span class="text-danger">{{ f.cost_difference|money }} more</span>{% else %}<span class="text-success">{{ f.cost_saving|money }} less</span>{% endif %} than planned for that amount{% endif %}{% if f.status == "partly" %} · {{ f.remaining|qty }} {{ line.unit_label }} still to buy{% endif %}
+              {% else %}<span class="text-secondary">Nothing bought yet.</span>{% endif %}
+            </div>
+            {% if f.purchases %}
+            <ul class="restock-purchases small">
+              {% for p in f.purchases %}
+              <li class="{% if p.is_reversed %}is-void{% endif %}">{{ p.purchase_date|date:"j M" }} · {{ p.quantity|qty }} {{ line.unit_label }} for {{ p.amount_paid|money }}{% if p.reference %} · {{ p.reference }}{% endif %}{% if p.stock_movement_id %} · added to stock{% endif %}
+                {% if p.is_reversed %}<span class="text-secondary">· reversed: {{ p.reversal_reason }}</span>{% elif perms.restock.add_restockpurchase %} · <a href="{% url 'restock:reverse' plan.pk p.pk %}">Reverse</a>{% endif %}</li>
+              {% endfor %}
+            </ul>
+            {% endif %}
+            <div class="restock-line-actions">
+              {% if perms.restock.add_restockpurchase %}<a class="btn btn-sm btn-outline-primary" href="{% url 'restock:purchase' plan.pk line.pk %}"><i class="bi bi-bag-check" aria-hidden="true"></i> Record purchase</a>{% endif %}
+              {% if form and not f.purchases %}<div class="form-check mb-0">{{ row.remove }}<label class="form-check-label small" for="{{ row.remove.id_for_label }}">Remove from plan</label></div>{% endif %}
+            </div>
+          </li>
+          {% endwith %}{% endfor %}
+        </ul>
+        {% else %}
+        <p class="text-secondary mb-0">Nothing in this plan yet. Add products or other items below.</p>
+        {% endif %}
+      </section>
+      {% if form %}
+      <section class="panel" aria-labelledby="notes-title">
+        <h2 id="notes-title" class="visually-hidden">Notes</h2>
+        {% include "partials/_field.html" with field=form.notes %}
+      </section>
+      {% endif %}
+    </div>
+  </div>
+  {% if form %}
+  <div class="sticky-actions page-actions d-flex flex-wrap gap-2">
+    <button type="submit" class="btn btn-primary px-4" data-busy-text="Saving…">Save plan</button>
+  </div>
+  {% endif %}
+</form>
+
+{% if add_product %}
+<div class="row g-4 mt-0">
+  <div class="col-md-6">
+    <form method="post" action="{% url 'restock:line_add' plan.pk %}" class="panel" novalidate aria-labelledby="add-product-title">
+      {% csrf_token %}<input type="hidden" name="kind" value="product">
+      <h2 id="add-product-title">Add a product</h2>
+      {% include "partials/_field.html" with field=add_product.product %}
+      <button type="submit" class="btn btn-outline-primary btn-sm">Add with suggested quantity</button>
+    </form>
+  </div>
+  <div class="col-md-6">
+    <form method="post" action="{% url 'restock:line_add' plan.pk %}" class="panel" novalidate aria-labelledby="add-item-title">
+      {% csrf_token %}<input type="hidden" name="kind" value="item">
+      <h2 id="add-item-title">Add another item</h2>
+      {% include "partials/_field.html" with field=add_item.description %}
+      <div class="row g-x-4">
+        <div class="col-6">{% include "partials/_field.html" with field=add_item.quantity %}</div>
+        <div class="col-6">{% include "partials/_field.html" with field=add_item.unit %}</div>
+      </div>
+      {% include "partials/_field.html" with field=add_item.unit_cost %}
+      <button type="submit" class="btn btn-outline-primary btn-sm">Add item</button>
+    </form>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

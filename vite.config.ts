@@ -28,6 +28,7 @@ export default defineConfig(({ mode }) => ({
         "product-form": resolve(import.meta.dirname, "static/ts/product-form.ts"),
         "payment-form": resolve(import.meta.dirname, "static/ts/payment-form.ts"),
         share: resolve(import.meta.dirname, "static/ts/share.ts"),
+        "restock-plan": resolve(import.meta.dirname, "static/ts/restock-plan.ts"),
         "poster-editor": resolve(import.meta.dirname, "static/ts/poster-editor.ts"),
         "design-editor": resolve(import.meta.dirname, "static/ts/design-editor.ts"),
       },

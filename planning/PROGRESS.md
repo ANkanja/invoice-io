@@ -311,6 +311,36 @@ for World Toilet Day from the dashboard list, live preview and too-long warning,
 export and download, design upload, add/drag/resize boxes and save; all poster
 pages at 390 px without sideways scrolling.
 
+## Restock plan — done
+
+Requested: plan next month's restocking in the app instead of on paper, and
+see where real buying differs from the plan. Decisions (owner, 14 Nov 2026):
+suggestions from sales; ticking off a purchase adds it to stock; free-text
+items for things that aren't products; a budget per month.
+
+Built (`restock` app):
+- RestockPlan (one per month, optional budget), RestockLine (product in its
+  friendly unit, or other item with its own unit), RestockPurchase (append-only;
+  reversed with a reason, never edited or deleted).
+- Suggestion: avg monthly sales over 3 months (sale movements minus reversals)
+  + low-stock alert − stock, rounded up to a whole friendly unit, never below 0.
+  Planned cost = last Stock in cost per friendly unit.
+- New plan copies the previous plan's other items.
+- Recording a purchase of a stock-tracked product calls `record_stock_in`
+  (quantity converted to the stock unit, cost per unit = paid ÷ quantity,
+  reference = supplier or "Restock Dec 2026"); reversing calls `record_stock_out`
+  (reason Other). One-time token blocks double saves.
+- Plan page: live totals in BigInt, same half-up rounding as the server;
+  planned vs bought per line (status, cost difference), spent, budget left,
+  over-budget warning. Dashboard panel for this month. Sidebar link.
+- Migration `restock/0001` only creates new tables.
+
+Verified: **280 tests pass** (15 restock tests in `restock/tests/test_restock.py`); browser run on a
+copy of the live database: plan for December suggested Harpic, Jik and Stain
+remover from real sales, live totals matched the saved totals, over-budget
+warning, a Jik purchase added 20 L to stock; pages at 390 px without sideways
+scrolling.
+
 ## Next
 - Phase 6 (optional AI image tools) and Phase 7 (going live: PostgreSQL, HTTPS,
   backups, login rate limiting).
@@ -321,6 +351,7 @@ pages at 390 px without sideways scrolling.
 - There's no rate limiting on login attempts yet (Phase 7) and no password reset by email (no email provider). Reset passwords with `python manage.py changepassword <username>`.
 - Page scripts share small chunks (`dist/chunks/decimal.js`, `units.js`) that aren't cache-busted in production; they're tiny and rarely change. To revisit in Phase 7 if needed.
 - Calvary hill Hospital is saved as an Individual; change it to Institution on its customer page if it should get institution prices.
+- Restock suggestions use stock-in costs; products whose stock was entered without a cost start with no planned price.
 - Poster thumbnails and previews are drawn on request (about 0.1 s each); fine for a few designs, could be cached later.
 - Poster text uses the fonts' Latin characters; emoji are not drawn.
 - Jik was converted with the generic rule ("1L container" at KES 1,300, stock 23 L); the owner should confirm that's how it's sold.

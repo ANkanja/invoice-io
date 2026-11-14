@@ -3,7 +3,7 @@
 Private Django web app for the owner's soap and cleaning-products business in
 Kenya: products with units and selling options, stock ledger, invoices (issue,
 amend, cancel/replace), payments, dashboard, posters (designs, box editor,
-exports, health calendar).
+exports, health calendar), monthly restock plans.
 
 Read `planning/PROGRESS.md` first: it has every decision so far, what each phase
 built, and known limitations. `README.md` has setup and the business rules.
@@ -20,7 +20,7 @@ built, and known limitations. `README.md` has setup and the business rules.
 
 ## Commands (PowerShell, venv active)
 - Run: `python manage.py runserver`
-- Tests: `python manage.py test` (all must pass; 265 now)
+- Tests: `python manage.py test` (all must pass; 280 now)
 - Front end: `npm run typecheck`, `npm run build`
 - Migrations: `python manage.py makemigrations --check --dry-run` must be clean.
 
@@ -30,7 +30,7 @@ built, and known limitations. `README.md` has setup and the business rules.
 - Business logic lives in each app's `services.py`; views and templates never
   change status, totals, stock or payments directly.
 - Ledgers are append-only: stock movements, payments (reversed, never edited or
-  deleted), payment allocations (released, never deleted), invoice revisions.
+  deleted), restock purchases (reversed), payment allocations (released, never deleted), invoice revisions.
 - Issued invoices change only through `amend_invoice` (keeps a revision) or
   `cancel_invoice`. Invoice lines are snapshots; catalogue edits never alter them.
 - Units: ml/L and g/kg convert exactly; count units never convert. Stock is held

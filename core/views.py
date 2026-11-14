@@ -16,6 +16,8 @@ from django.views.decorators.http import require_GET, require_http_methods
 
 from inventory.models import StockMovement
 from posters.services import upcoming_occasions
+from restock import services as restock_services
+from restock.models import RestockPlan
 from products.models import Product
 from products.units import format_in_display_unit
 
@@ -90,6 +92,10 @@ def dashboard(request):
     }
     if context["show_money"]:
         context.update(_money_dashboard(today))
+    if request.user.has_perm("restock.view_restockplan"):
+        plan = RestockPlan.objects.filter(month=today.replace(day=1)).first()
+        context["restock"] = restock_services.plan_figures(plan) if plan else None
+        context["show_restock"] = True
     if request.user.has_perm("posters.view_occasion"):
         context["upcoming_occasions"] = upcoming_occasions(today, days=30)[:6]
     return render(request, "core/dashboard.html", context)
